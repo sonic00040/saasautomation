@@ -11,9 +11,9 @@ This document tracks the progress of the development for the SaaS version of the
 - [x] **Function: get_total_usage**: Done
 
 ## Phase 2: Backend Logic Implementation
-- [ ] **Tenant Identification**: Not started
-- [ ] **Usage Metering**: Not started
-- [ ] **Limit Enforcement**: Not started
+- [x] **Tenant Identification**: Done
+- [x] **Usage Metering**: Done
+- [x] **Limit Enforcement**: Done
 
 ## Phase 3: Frontend MVP - Dashboard
 - [ ] **Project Setup**: Not started
