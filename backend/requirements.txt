@@ -3,3 +3,7 @@ uvicorn[standard]
 supabase
 google-generativeai
 requests
+python-dotenv
+python-multipart
+redis
+slowapi
