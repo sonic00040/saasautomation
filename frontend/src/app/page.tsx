@@ -1,103 +1,207 @@
-import Image from "next/image";
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Bot, MessageSquare, Zap, Shield, BarChart3, Users } from "lucide-react"
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-32 w-80 h-80 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full opacity-10 blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/2 -left-32 w-80 h-80 bg-gradient-to-r from-indigo-400 to-blue-500 rounded-full opacity-10 blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute -bottom-40 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-300 to-indigo-300 rounded-full opacity-10 blur-3xl animate-pulse delay-2000"></div>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Enhanced Header */}
+      <header className="border-b border-white/20 bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-2">
+              <Bot className="h-8 w-8 text-blue-600" />
+              <span className="font-bold text-xl text-gray-900">BotAI</span>
+            </div>
+            <nav className="hidden md:flex items-center space-x-8">
+              <Link href="#features" className="text-gray-600 hover:text-gray-900">
+                Features
+              </Link>
+              <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
+                Pricing
+              </Link>
+              <Link href="#about" className="text-gray-600 hover:text-gray-900">
+                About
+              </Link>
+            </nav>
+            <div className="flex items-center space-x-4">
+              <Link href="/auth/login">
+                <Button variant="ghost">Sign In</Button>
+              </Link>
+              <Link href="/auth/signup">
+                <Button>Get Started</Button>
+              </Link>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </header>
+
+      {/* Hero Section */}
+      <section className="py-20 lg:py-32">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-4xl mx-auto">
+            <Badge variant="secondary" className="mb-4">
+              AI-Powered Customer Support
+            </Badge>
+            <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6">
+              Transform Your Customer Support with{" "}
+              <span className="text-blue-600">AI Chatbots</span>
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+              Create intelligent chatbots that provide instant, accurate customer support 24/7. 
+              Reduce response times and increase customer satisfaction with our easy-to-use platform.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/auth/signup">
+                <Button size="lg" className="text-lg px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300">
+                  Start Free Trial
+                </Button>
+              </Link>
+              <Link href="#features">
+                <Button variant="outline" size="lg" className="text-lg px-8 border-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 shadow-lg hover:shadow-xl transition-all duration-300">
+                  See Features
+                </Button>
+              </Link>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">
+              No credit card required • 14-day free trial
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 bg-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+              Everything you need to succeed
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Our platform provides all the tools and features you need to create, deploy, 
+              and manage AI-powered customer support chatbots.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card>
+              <CardHeader>
+                <MessageSquare className="h-8 w-8 text-blue-600 mb-2" />
+                <CardTitle>Intelligent Conversations</CardTitle>
+                <CardDescription>
+                  Advanced AI that understands context and provides human-like responses
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <Zap className="h-8 w-8 text-blue-600 mb-2" />
+                <CardTitle>Instant Setup</CardTitle>
+                <CardDescription>
+                  Get your chatbot up and running in minutes with our simple configuration process
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <BarChart3 className="h-8 w-8 text-blue-600 mb-2" />
+                <CardTitle>Analytics & Insights</CardTitle>
+                <CardDescription>
+                  Track performance, user satisfaction, and conversation metrics in real-time
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <Shield className="h-8 w-8 text-blue-600 mb-2" />
+                <CardTitle>Enterprise Security</CardTitle>
+                <CardDescription>
+                  Bank-level security with data encryption and compliance with industry standards
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <Users className="h-8 w-8 text-blue-600 mb-2" />
+                <CardTitle>Multi-Platform Support</CardTitle>
+                <CardDescription>
+                  Deploy across websites, mobile apps, and messaging platforms seamlessly
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <Bot className="h-8 w-8 text-blue-600 mb-2" />
+                <CardTitle>Custom Knowledge Base</CardTitle>
+                <CardDescription>
+                  Upload documents and train your bot with your specific business information
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-600 relative overflow-hidden">
+        {/* Background decoration for CTA */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-72 h-72 bg-gradient-to-r from-white/10 to-indigo-300/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-gradient-to-r from-blue-300/10 to-white/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center max-w-3xl mx-auto">
+            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+              Ready to transform your customer support?
+            </h2>
+            <p className="text-xl text-blue-100 mb-8">
+              Join thousands of businesses already using BotAI to provide exceptional customer experiences.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/auth/signup">
+                <Button size="lg" className="text-lg px-8 bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 shadow-xl hover:shadow-2xl transition-all duration-300">
+                  Start Your Free Trial
+                </Button>
+              </Link>
+              <Link href="/pricing">
+                <Button size="lg" variant="outline" className="text-lg px-8 bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 shadow-lg hover:shadow-xl transition-all duration-300">
+                  View Pricing
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 bg-gray-50 border-t">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Bot className="h-6 w-6 text-blue-600" />
+              <span className="font-bold text-lg text-gray-900">BotAI</span>
+            </div>
+            <p className="text-gray-600 text-sm">
+              © 2025 BotAI. All rights reserved.
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
-  );
+  )
 }
