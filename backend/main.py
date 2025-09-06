@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from pydantic import BaseModel
-from . import services
-from . import config
+import services
+import config
 from datetime import datetime
 import hmac
 import hashlib
@@ -151,3 +151,7 @@ async def handle_webhook(
             pass  # Don't let telegram errors crash the whole handler
         
         raise HTTPException(status_code=500, detail="Internal server error")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

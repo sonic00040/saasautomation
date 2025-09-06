@@ -39,7 +39,7 @@
 | S | Marketing | Features Page | Detailed feature explanations with demos | Enhanced conversion support |
 | S | Marketing | About Page | Team, mission, company credibility | Trust building |
 | S | Marketing | Contact Page | Contact forms, support options | Customer support access |
-| S | Authentication | Supabase Social Providers | Google, Microsoft, GitHub via Supabase Auth | Improved user experience |
+| C | Authentication | Supabase Social Providers | Google, Microsoft, GitHub via Supabase Auth | Convenience feature for user onboarding |
 | S | Technical | Protected Routes | Supabase session-based route protection | Secure application access |
 | S | Dashboard | Company Profile Management | Company details, logo upload, industry | User account customization |
 | S | Dashboard | Quick Actions Bar | Upload knowledge, test bot, view analytics | Workflow efficiency |
@@ -104,11 +104,11 @@
 ### Must Have (M) - 16 Features
 Essential features for MVP launch including Supabase Auth integration and RLS for secure multi-tenant functionality.
 
-### Should Have (S) - 20 Features  
-Important features including Supabase social providers, protected routes, and storage integration that significantly improve user experience and business value.
+### Should Have (S) - 19 Features  
+Important features including protected routes and storage integration that significantly improve user experience and business value.
 
-### Could Have (C) - 19 Features
-Nice-to-have features including Supabase 2FA, real-time subscriptions, and advanced security settings that add value when resources permit.
+### Could Have (C) - 20 Features
+Nice-to-have features including Supabase social providers, 2FA, real-time subscriptions, and advanced security settings that add value when resources permit.
 
 ### Won't Have (W) - 15 Features
 Features explicitly out of scope for the current development cycle, either due to complexity, timeline, or strategic decisions.
@@ -127,8 +127,8 @@ Focus on the 16 Must Have features to create a functional MVP that can:
 - Handle billing and subscription management
 
 ### Phase 2 (Enhanced): Should Have Features
-Add the 20 Should Have features to create a complete, polished product that:
-- Improves user experience significantly with Supabase social providers
+Add the 19 Should Have features to create a complete, polished product that:
+- Improves user experience significantly
 - Implements protected routes and session management
 - Adds Supabase Storage integration for file management
 - Adds business intelligence capabilities
