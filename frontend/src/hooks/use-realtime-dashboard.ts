@@ -4,178 +4,214 @@ import { useState, useCallback, useEffect } from 'react'
 import { useRealtime } from './use-realtime'
 import { useToast } from '@/contexts/toast-context'
 import { useAuth } from '@/contexts/auth-context'
+import { getUserMetrics, getUserActivities, logActivity, type DashboardMetrics, type Activity, APIError } from '@/lib/api'
 
-interface DashboardMetrics {
-  activeUsers: number
-  totalMessages: number
-  botResponses: number
-  avgResponseTime: number
-  errorRate: number
-  lastUpdated: string
-}
-
-interface ActivityItem {
-  id: string
-  type: 'message' | 'error' | 'user_join' | 'user_leave' | 'bot_response'
-  message: string
-  timestamp: string
-  metadata?: Record<string, any>
+interface DashboardState {
+  metrics: DashboardMetrics
+  activities: Activity[]
+  loading: boolean
+  error: string | null
 }
 
 export function useRealtimeDashboard() {
   const { user } = useAuth()
-  const { success, info, error, warning } = useToast()
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    activeUsers: 0,
-    totalMessages: 0,
-    botResponses: 0,
-    avgResponseTime: 0,
-    errorRate: 0,
-    lastUpdated: new Date().toISOString()
+  const { success, info, error: showError, warning } = useToast()
+
+  const [state, setState] = useState<DashboardState>({
+    metrics: {
+      totalMessages: 0,
+      activeBots: 0,
+      successRate: 0,
+      avgResponseTime: 0,
+      messagesThisMonth: 0,
+      monthlyLimit: 1000,
+      tokensUsed: 0,
+      planName: 'Free Plan',
+      planPrice: 0,
+      subscriptionEndDate: null
+    },
+    activities: [],
+    loading: true,
+    error: null
   })
-  const [activities, setActivities] = useState<ActivityItem[]>([])
+
   const [isConnected, setIsConnected] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string>(new Date().toISOString())
 
-  // Simulate real-time metrics updates
-  const updateMetrics = useCallback(() => {
-    setMetrics(prev => ({
-      ...prev,
-      activeUsers: Math.floor(Math.random() * 50) + 10,
-      totalMessages: prev.totalMessages + Math.floor(Math.random() * 5),
-      botResponses: prev.botResponses + Math.floor(Math.random() * 3),
-      avgResponseTime: Math.random() * 2000 + 500,
-      errorRate: Math.random() * 5,
-      lastUpdated: new Date().toISOString()
-    }))
-  }, [])
-
-  // Add new activity
-  const addActivity = useCallback((activity: Omit<ActivityItem, 'id'>) => {
-    const newActivity: ActivityItem = {
-      id: Math.random().toString(36).substring(2, 9),
-      ...activity
+  const fetchDashboardData = useCallback(async () => {
+    if (!user) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: 'User not authenticated'
+      }))
+      return
     }
 
-    setActivities(prev => [newActivity, ...prev.slice(0, 19)]) // Keep only 20 items
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }))
 
-    // Show toast notification for important activities
-    switch (activity.type) {
-      case 'error':
-        error('System Error', activity.message)
-        break
-      case 'user_join':
-        info('New User', activity.message)
-        break
-      case 'bot_response':
-        // Only show success for significant milestones
-        if (metrics.botResponses % 10 === 0) {
-          success('Bot Active', `${metrics.botResponses} responses today`)
-        }
-        break
+      const [metricsData, activitiesData] = await Promise.all([
+        getUserMetrics(user),
+        getUserActivities(user, 10)
+      ])
+
+      setState(prev => ({
+        ...prev,
+        metrics: metricsData,
+        activities: activitiesData,
+        loading: false,
+        error: null
+      }))
+
+      setLastUpdated(new Date().toISOString())
+      setIsConnected(true)
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err)
+      const errorMessage = err instanceof APIError ? err.message : 'Failed to load dashboard data'
+
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: errorMessage
+      }))
+
+      setIsConnected(false)
+      showError('Data Error', errorMessage)
     }
-  }, [error, info, success, metrics.botResponses])
+  }, [user, showError])
 
-  // Simulate activity generation
-  const generateActivity = useCallback(() => {
-    const activities = [
-      {
-        type: 'message' as const,
-        message: 'New message received from customer',
-        timestamp: new Date().toISOString()
-      },
-      {
-        type: 'bot_response' as const,
-        message: 'Bot generated helpful response',
-        timestamp: new Date().toISOString()
-      },
-      {
-        type: 'user_join' as const,
-        message: 'New user started conversation',
-        timestamp: new Date().toISOString()
-      }
-    ]
-
-    if (Math.random() < 0.1) {
-      activities.push({
-        type: 'error' as const,
-        message: 'Rate limit exceeded for API calls',
-        timestamp: new Date().toISOString()
-      })
-    }
-
-    const randomActivity = activities[Math.floor(Math.random() * activities.length)]
-    addActivity(randomActivity)
-  }, [addActivity])
-
-  // Set up real-time subscription (simulated for now)
-  useEffect(() => {
+  const addActivity = useCallback(async (activity: {
+    type: Activity['type']
+    description: string
+    metadata?: Record<string, unknown>
+  }) => {
     if (!user) return
 
-    setIsConnected(true)
+    try {
+      await logActivity(user, activity)
 
-    // Simulate periodic updates
-    const metricsInterval = setInterval(updateMetrics, 10000) // Every 10 seconds
-    const activityInterval = setInterval(generateActivity, 5000) // Every 5 seconds
+      const newActivity: Activity = {
+        id: Math.random().toString(36).substring(2, 9),
+        type: activity.type,
+        description: activity.description,
+        timestamp: new Date().toISOString(),
+        metadata: activity.metadata,
+        botName: (activity.metadata?.botName as string) || 'AI Bot'
+      }
 
-    return () => {
-      clearInterval(metricsInterval)
-      clearInterval(activityInterval)
-      setIsConnected(false)
+      setState(prev => ({
+        ...prev,
+        activities: [newActivity, ...prev.activities.slice(0, 9)]
+      }))
+
+      // Show toast notification for important activities
+      switch (activity.type) {
+        case 'user_join':
+          info('New User', activity.description)
+          break
+        case 'bot_created':
+          success('Bot Created', activity.description)
+          break
+        case 'knowledge_updated':
+          info('Knowledge Updated', activity.description)
+          break
+      }
+    } catch (err) {
+      console.error('Error logging activity:', err)
     }
-  }, [user, updateMetrics, generateActivity])
+  }, [user, info, success])
 
-  // Real-time subscription for messages table (when available)
+  const refresh = useCallback(async () => {
+    await fetchDashboardData()
+    info('Dashboard Refreshed', 'Data has been updated')
+  }, [fetchDashboardData, info])
+
+  // Initial data fetch
+  useEffect(() => {
+    if (user) {
+      fetchDashboardData()
+    }
+  }, [user, fetchDashboardData])
+
+  // Real-time subscription for activities
   useRealtime(
-    { table: 'messages', event: 'INSERT' },
+    { table: 'activities', event: 'INSERT' },
     {
       onInsert: (payload) => {
-        console.log('New message:', payload)
-        addActivity({
-          type: 'message',
-          message: 'New message received',
-          timestamp: new Date().toISOString(),
-          metadata: payload.new
-        })
-        updateMetrics()
+        console.log('New activity:', payload)
+
+        if (payload.new && payload.new.user_id === user?.id) {
+          const newActivity: Activity = {
+            id: payload.new.id,
+            type: payload.new.type,
+            description: payload.new.description,
+            timestamp: payload.new.created_at,
+            metadata: payload.new.metadata,
+            botName: (payload.new.metadata?.botName as string) || 'AI Bot'
+          }
+
+          setState(prev => ({
+            ...prev,
+            activities: [newActivity, ...prev.activities.slice(0, 9)]
+          }))
+        }
       },
       onError: (err) => {
         console.error('Realtime subscription error:', err)
         setIsConnected(false)
-        error('Connection Lost', 'Real-time updates disconnected')
+        showError('Connection Lost', 'Real-time updates disconnected')
       },
-      enabled: true
+      enabled: !!user
     }
   )
 
-  // Real-time subscription for bot responses (when available)
+  // Real-time subscription for conversations/usage updates
   useRealtime(
-    { table: 'bot_responses', event: 'INSERT' },
+    { table: 'usage_logs', event: 'INSERT' },
     {
       onInsert: (payload) => {
-        console.log('New bot response:', payload)
-        addActivity({
-          type: 'bot_response',
-          message: 'Bot generated response',
-          timestamp: new Date().toISOString(),
-          metadata: payload.new
-        })
-        updateMetrics()
+        console.log('New usage logged:', payload)
+        // Refresh metrics when new usage is recorded
+        fetchDashboardData()
       },
-      enabled: true
+      enabled: !!user
     }
   )
 
-  const refresh = useCallback(() => {
-    updateMetrics()
-    info('Dashboard Refreshed', 'Data has been updated')
-  }, [updateMetrics, info])
+  // Real-time subscription for bot status changes
+  useRealtime(
+    { table: 'bots', event: 'UPDATE' },
+    {
+      onUpdate: (payload) => {
+        console.log('Bot updated:', payload)
+        // Refresh metrics when bot status changes
+        fetchDashboardData()
+      },
+      enabled: !!user
+    }
+  )
+
+  // For backward compatibility, expose metrics separately
+  const metrics = {
+    activeUsers: 0, // deprecated
+    totalMessages: state.metrics.totalMessages,
+    botResponses: state.metrics.totalMessages, // deprecated
+    avgResponseTime: state.metrics.avgResponseTime,
+    errorRate: 100 - state.metrics.successRate,
+    lastUpdated
+  }
 
   return {
     metrics,
-    activities,
+    activities: state.activities,
     isConnected,
+    loading: state.loading,
+    error: state.error,
     refresh,
-    setMetrics,
-    addActivity
+    addActivity,
+    dashboardMetrics: state.metrics,
+    setMetrics: () => {}, // deprecated
   }
 }

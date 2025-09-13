@@ -1,16 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { 
-  Bot, 
-  Settings, 
-  Eye, 
-  EyeOff, 
+import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/contexts/toast-context"
+import { getUserBots, getUserCompany, type BotConfig } from "@/lib/api"
+import {
+  Bot,
+  Settings,
+  Eye,
+  EyeOff,
   Copy,
   CheckCircle,
   AlertCircle,
@@ -19,13 +22,14 @@ import {
   ExternalLink,
   Webhook,
   Key,
-  Activity
+  Activity,
+  Loader2
 } from "lucide-react"
 
-interface BotConfig {
+interface BotData {
   id: string
   name: string
-  token: string
+  token: string | null
   webhookUrl: string
   status: 'connected' | 'disconnected' | 'error'
   lastActivity: string
@@ -34,32 +38,68 @@ interface BotConfig {
 }
 
 export default function BotsPage() {
+  const { user } = useAuth()
+  const { error: showError } = useToast()
   const [showToken, setShowToken] = useState<{ [key: string]: boolean }>({})
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({})
+  const [bots, setBots] = useState<BotData[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock data - in real app this would come from API
-  const bots: BotConfig[] = [
-    {
-      id: '1',
-      name: 'Support Bot',
-      token: 'bot_live_1234567890abcdef1234567890abcdef',
-      webhookUrl: 'https://api.yourapp.com/webhook/bot_1234567890',
-      status: 'connected',
-      lastActivity: '2 minutes ago',
-      platform: 'Telegram',
-      messagesCount: 1247
-    },
-    {
-      id: '2',
-      name: 'Sales Bot',
-      token: 'bot_live_abcdef1234567890abcdef1234567890',
-      webhookUrl: 'https://api.yourapp.com/webhook/bot_abcdef1234',
-      status: 'disconnected',
-      lastActivity: '1 hour ago',
-      platform: 'Discord',
-      messagesCount: 892
+  useEffect(() => {
+    const fetchBots = async () => {
+      if (!user) return
+
+      try {
+        setLoading(true)
+        const company = await getUserCompany(user)
+        if (!company) {
+          setBots([])
+          return
+        }
+
+        const botsData = await getUserBots(company.id)
+
+        // Transform the data to match the UI expectations
+        const transformedBots: BotData[] = botsData.map(bot => {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://your-backend.ngrok.io'
+          const webhookUrl = bot.token ? `${backendUrl}/webhook/${bot.token}` : ''
+
+          // Determine status based on bot configuration
+          const status: 'connected' | 'disconnected' | 'error' =
+            bot.isActive && bot.token ? 'connected' :
+            bot.token ? 'disconnected' : 'error'
+
+          return {
+            id: bot.id,
+            name: bot.name,
+            token: bot.token || '',
+            webhookUrl,
+            status,
+            lastActivity: bot.lastActivity
+              ? new Date(bot.lastActivity).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              : 'Never',
+            platform: bot.platform.charAt(0).toUpperCase() + bot.platform.slice(1),
+            messagesCount: bot.messageCount
+          }
+        })
+
+        setBots(transformedBots)
+      } catch (err) {
+        console.error('Error fetching bots:', err)
+        showError('Error', 'Failed to load bots')
+        setBots([])
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchBots()
+  }, [user, showError])
 
   const copyToClipboard = async (text: string, id: string, type: 'token' | 'webhook') => {
     await navigator.clipboard.writeText(text)
@@ -99,6 +139,37 @@ export default function BotsPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-slate-900 text-white p-6 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Bot className="h-7 w-7 text-yellow-400" />
+                Bot Configuration
+              </h1>
+              <p className="mt-2 text-slate-300">
+                Manage your chatbots, configure tokens, and monitor connection status
+              </p>
+            </div>
+            <Button disabled className="bg-yellow-500 text-slate-900 font-semibold">
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Loading...
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-gray-200 rounded-lg h-32"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header with dark theme matching screenshot */}
@@ -113,7 +184,10 @@ export default function BotsPage() {
               Manage your chatbots, configure tokens, and monitor connection status
             </p>
           </div>
-          <Button className="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold">
+          <Button
+            className="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold"
+            onClick={() => window.location.href = '/dashboard/bots/new'}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Create New Bot
           </Button>
@@ -161,7 +235,27 @@ export default function BotsPage() {
 
       {/* Bot Configuration Cards */}
       <div className="space-y-6">
-        {bots.map((bot) => (
+        {bots.length === 0 ? (
+          <Card className="bg-white border-slate-200">
+            <CardContent className="p-12 text-center">
+              <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Bot className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">No Bots Created Yet</h3>
+              <p className="text-slate-600 mb-6">
+                Create your first bot to start providing AI-powered customer support.
+              </p>
+              <Button
+                className="bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold"
+                onClick={() => window.location.href = '/dashboard/bots/new'}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Bot
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          bots.map((bot) => (
           <Card key={bot.id} className="bg-white border-slate-200 shadow-sm">
             <CardHeader className="border-b border-slate-100">
               <div className="flex items-center justify-between">
@@ -335,7 +429,8 @@ export default function BotsPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   )

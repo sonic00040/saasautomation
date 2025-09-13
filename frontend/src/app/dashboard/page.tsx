@@ -31,7 +31,7 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
-  const { metrics, activities, isConnected, refresh } = useRealtimeDashboard()
+  const { metrics, activities, isConnected, refresh, loading, error, dashboardMetrics } = useRealtimeDashboard()
   const { success } = useToast()
   const { startTour, isActive } = useTour()
   const isClient = useClientSide()
@@ -40,61 +40,37 @@ export default function DashboardPage() {
     startTour(dashboardTour)
   }
 
-  // Mock data - merged with real-time metrics
+  // Use real dashboard metrics
   const stats = {
-    totalMessages: metrics.totalMessages || 1247,
-    totalBots: 2,
-    activeConversations: metrics.activeUsers || 23,
-    avgResponseTime: `${(metrics.avgResponseTime / 1000).toFixed(1)}s`,
-    successRate: Math.round((1 - metrics.errorRate / 100) * 100),
-    messagesThisMonth: metrics.totalMessages || 892,
-    monthlyLimit: 1000,
+    totalMessages: dashboardMetrics.totalMessages,
+    totalBots: dashboardMetrics.activeBots,
+    activeConversations: 0, // deprecated
+    avgResponseTime: dashboardMetrics.avgResponseTime > 0
+      ? `${(dashboardMetrics.avgResponseTime / 1000).toFixed(1)}s`
+      : '0.0s',
+    successRate: Math.round(dashboardMetrics.successRate),
+    messagesThisMonth: dashboardMetrics.messagesThisMonth,
+    monthlyLimit: dashboardMetrics.monthlyLimit,
+    tokensUsed: dashboardMetrics.tokensUsed,
+    planName: dashboardMetrics.planName,
   }
 
-  // Use real-time activities if available, otherwise fall back to mock data
-  const recentActivity = activities.length > 0 ? activities.slice(0, 4).map(activity => ({
+  // Use real activities from the API
+  const recentActivity = activities.slice(0, 4).map(activity => ({
     id: activity.id,
     type: activity.type,
-    description: activity.message,
-    bot: "AI Bot",
+    description: activity.description,
+    bot: activity.botName || "AI Bot",
     time: formatDateTime(activity.timestamp),
-    status: activity.type === 'error' ? 'pending' :
+    status: activity.type === 'message' ? 'resolved' :
             activity.type === 'bot_response' ? 'resolved' :
-            activity.type === 'user_join' ? 'active' : 'success'
-  })) : [
-    {
-      id: 1,
-      type: "message",
-      description: "Customer inquiry about pricing",
-      bot: "Support Bot",
-      time: "2 minutes ago",
-      status: "resolved"
-    },
-    {
-      id: 2,
-      type: "bot",
-      description: "Knowledge base updated",
-      bot: "Sales Bot",
-      time: "1 hour ago",
-      status: "success"
-    },
-    {
-      id: 3,
-      type: "conversation",
-      description: "New conversation started",
-      bot: "Support Bot",
-      time: "2 hours ago",
-      status: "active"
-    },
-    {
-      id: 4,
-      type: "message",
-      description: "Customer feedback received",
-      bot: "Feedback Bot",
-      time: "3 hours ago",
-      status: "pending"
-    },
-  ]
+            activity.type === 'user_join' ? 'active' :
+            activity.type === 'bot_created' ? 'success' :
+            activity.type === 'knowledge_updated' ? 'success' : 'pending'
+  }))
+
+  // Check if this is a new user with no data
+  const isNewUser = stats.totalBots === 0 && stats.totalMessages === 0
 
   const quickActions = [
     {
@@ -127,7 +103,47 @@ export default function DashboardPage() {
     },
   ]
 
-  const usagePercentage = (stats.messagesThisMonth / stats.monthlyLimit) * 100
+  const usagePercentage = stats.monthlyLimit > 0 ? (stats.tokensUsed / stats.monthlyLimit) * 100 : 0
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-gray-200 rounded-lg h-32"></div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-gray-200 rounded-lg h-64"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-8 w-8 text-red-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load dashboard</h3>
+          <p className="text-sm text-gray-500 mb-6">{error}</p>
+          <Button onClick={refresh}>Try Again</Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -199,9 +215,9 @@ export default function DashboardPage() {
         <StatCard
           title="Total Messages"
           value={stats.totalMessages}
-          subtitle="This month"
+          subtitle={isNewUser ? "Get started by creating a bot" : "This month"}
           icon={MessageSquare}
-          trend={{ value: "+12% from last month", type: "positive" }}
+          trend={stats.totalMessages > 0 ? { value: "Messages processed", type: "positive" } : undefined}
           variant="gradient"
           color="blue"
           animated
@@ -210,18 +226,18 @@ export default function DashboardPage() {
         <StatCard
           title="Active Bots"
           value={stats.totalBots}
-          subtitle="All systems operational"
+          subtitle={isNewUser ? "No bots configured yet" : stats.totalBots === 1 ? "1 bot configured" : `${stats.totalBots} bots configured`}
           icon={Bot}
           variant="colored"
-          color="green"
+          color={stats.totalBots > 0 ? "green" : "blue"}
         />
 
         <StatCard
           title="Success Rate"
-          value={`${stats.successRate}%`}
-          subtitle="Resolution accuracy"
+          value={stats.totalMessages > 0 ? `${stats.successRate}%` : "N/A"}
+          subtitle={isNewUser ? "No data available yet" : "Resolution accuracy"}
           icon={Target}
-          trend={{ value: "+2% from last week", type: "positive" }}
+          trend={stats.successRate > 0 ? { value: "Performance tracking", type: "positive" } : undefined}
           variant="gradient"
           color="purple"
         />
@@ -229,9 +245,9 @@ export default function DashboardPage() {
         <StatCard
           title="Response Time"
           value={stats.avgResponseTime}
-          subtitle="Average response"
+          subtitle={isNewUser ? "No responses yet" : "Average response"}
           icon={Clock}
-          trend={{ value: "-0.3s improvement", type: "positive" }}
+          trend={stats.totalMessages > 0 ? { value: "Response speed", type: "positive" } : undefined}
           variant="colored"
           color="orange"
         />
@@ -246,10 +262,10 @@ export default function DashboardPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-blue-600" />
-                  Monthly Usage
+                  Monthly Usage ({stats.planName})
                 </CardTitle>
                 <CardDescription>
-                  Current plan usage and limits
+                  Token consumption and limits
                 </CardDescription>
               </div>
               <Badge 
@@ -263,10 +279,10 @@ export default function DashboardPage() {
           <CardContent className="space-y-6">
             <div className="text-center">
               <p className="text-4xl font-bold text-gray-900">
-                {stats.messagesThisMonth.toLocaleString()}
+                {stats.tokensUsed.toLocaleString()}
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                of {stats.monthlyLimit.toLocaleString()} messages
+                of {stats.monthlyLimit.toLocaleString()} tokens
               </p>
             </div>
             
@@ -286,12 +302,17 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t">
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-600">
-                  {(stats.monthlyLimit - stats.messagesThisMonth).toLocaleString()}
+                  {(stats.monthlyLimit - stats.tokensUsed).toLocaleString()}
                 </p>
-                <p className="text-xs text-gray-500">Remaining</p>
+                <p className="text-xs text-gray-500">Remaining tokens</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">12</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {dashboardMetrics.subscriptionEndDate
+                    ? Math.max(0, Math.ceil((new Date(dashboardMetrics.subscriptionEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+                    : 30
+                  }
+                </p>
                 <p className="text-xs text-gray-500">Days to reset</p>
               </div>
             </div>
@@ -365,11 +386,31 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-blue-200 via-green-200 to-gray-200"></div>
-            
-            <div className="space-y-6">
-              {recentActivity.map((activity, index) => {
+            {recentActivity.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                  <Activity className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No activity yet</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Once you create and configure bots, their activity will appear here.
+                </p>
+                <div className="flex justify-center space-x-3">
+                  <Button size="sm" asChild>
+                    <a href="/dashboard/bots/new">Create Bot</a>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href="/dashboard/knowledge">Add Knowledge</a>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Timeline line */}
+                <div className="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-blue-200 via-green-200 to-gray-200"></div>
+
+                <div className="space-y-6">
+                  {recentActivity.map((activity, index) => {
                 const StatusIcon = activity.status === 'resolved' ? CheckCircle :
                                  activity.status === 'success' ? CheckCircle :
                                  activity.status === 'active' ? Activity :
@@ -420,8 +461,10 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 )
-              })}
-            </div>
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

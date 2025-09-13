@@ -1,15 +1,23 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { 
-  Upload, 
-  File, 
-  FileText, 
+import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/contexts/toast-context"
+import {
+  getKnowledgeBase,
+  addKnowledgeContent,
+  deleteKnowledgeContent,
+  type KnowledgeBaseEntry
+} from "@/lib/api"
+import {
+  Upload,
+  File,
+  FileText,
   FileImage,
   X,
   CheckCircle,
@@ -24,7 +32,8 @@ import {
   Eye,
   FileType,
   Calendar,
-  Users
+  Users,
+  Loader2
 } from "lucide-react"
 
 interface KnowledgeFile {
@@ -48,51 +57,52 @@ interface UploadFile {
 }
 
 export default function KnowledgePage() {
+  const { user } = useAuth()
+  const { success, error: showError } = useToast()
   const [dragActive, setDragActive] = useState(false)
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([])
   const [textContent, setTextContent] = useState('')
   const [textTitle, setTextTitle] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeBaseEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState<Set<string>>(new Set())
 
-  // Mock data - in real app this would come from API
-  const knowledgeFiles: KnowledgeFile[] = [
-    {
-      id: '1',
-      name: 'Product Documentation.pdf',
-      type: 'pdf',
-      size: 2547200,
-      uploadDate: new Date(Date.now() - 86400000),
-      status: 'ready',
-      category: 'Documentation',
-      description: 'Complete product documentation and user guide',
-      chunks: 45
-    },
-    {
-      id: '2',
-      name: 'FAQ Responses.txt',
-      type: 'txt',
-      size: 156800,
-      uploadDate: new Date(Date.now() - 172800000),
-      status: 'ready',
-      category: 'Support',
-      description: 'Frequently asked questions and answers',
-      chunks: 23
-    },
-    {
-      id: '3',
-      name: 'Company Policies.docx',
-      type: 'docx',
-      size: 894300,
-      uploadDate: new Date(Date.now() - 259200000),
-      status: 'processing',
-      category: 'Policies',
-      description: 'Internal company policies and procedures',
-      chunks: 0
+  // Fetch knowledge base data
+  useEffect(() => {
+    const fetchKnowledgeBase = async () => {
+      if (!user) return
+
+      try {
+        setLoading(true)
+        const entries = await getKnowledgeBase(user)
+        setKnowledgeEntries(entries)
+      } catch (err) {
+        console.error('Error fetching knowledge base:', err)
+        showError('Error', 'Failed to load knowledge base')
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
 
-  const categories = ['all', 'Documentation', 'Support', 'Policies', 'Training']
+    fetchKnowledgeBase()
+  }, [user, showError])
+
+  // Transform entries to match UI expectations
+  const knowledgeFiles: KnowledgeFile[] = knowledgeEntries.map(entry => ({
+    id: entry.id,
+    name: entry.file_name || entry.title || 'Untitled Content',
+    type: (entry.file_type?.replace('.', '') as any) || 'text',
+    size: entry.file_size || entry.content.length,
+    uploadDate: new Date(entry.created_at),
+    status: 'ready',
+    category: 'Knowledge',
+    description: entry.title || 'Knowledge base content',
+    chunks: Math.ceil(entry.content.length / 1000) // Rough estimate
+  }))
+
+  const categories = ['all', 'Knowledge', 'Documentation', 'Support', 'Policies', 'Training']
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -158,19 +168,51 @@ export default function KnowledgePage() {
     setUploadFiles(prev => prev.filter(upload => upload.id !== uploadId))
   }
 
-  const addTextContent = () => {
-    if (!textContent.trim() || !textTitle.trim()) return
+  const addTextContent = async () => {
+    if (!textContent.trim() || !textTitle.trim() || !user) return
 
-    const newUpload: UploadFile = {
-      file: new File([textContent], `${textTitle}.txt`, { type: 'text/plain' }),
-      id: Math.random().toString(),
-      progress: 100,
-      status: 'complete'
+    try {
+      await addKnowledgeContent(user, {
+        content: textContent.trim(),
+        title: textTitle.trim(),
+        file_name: `${textTitle.trim()}.txt`,
+        file_type: 'text',
+        file_size: textContent.length
+      })
+
+      // Refresh the knowledge base
+      const entries = await getKnowledgeBase(user)
+      setKnowledgeEntries(entries)
+
+      setTextContent('')
+      setTextTitle('')
+      success('Content Added', 'Text content has been added to your knowledge base')
+    } catch (err) {
+      console.error('Error adding text content:', err)
+      showError('Error', 'Failed to add text content')
     }
+  }
 
-    setUploadFiles(prev => [...prev, newUpload])
-    setTextContent('')
-    setTextTitle('')
+  const handleDelete = async (id: string) => {
+    if (!user) return
+
+    try {
+      setDeleting(prev => new Set([...prev, id]))
+      await deleteKnowledgeContent(user, id)
+
+      // Remove from local state
+      setKnowledgeEntries(prev => prev.filter(entry => entry.id !== id))
+      success('Content Deleted', 'Knowledge content has been removed')
+    } catch (err) {
+      console.error('Error deleting content:', err)
+      showError('Error', 'Failed to delete content')
+    } finally {
+      setDeleting(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(id)
+        return newSet
+      })
+    }
   }
 
   const getFileIcon = (type: string) => {
@@ -218,6 +260,37 @@ export default function KnowledgePage() {
   const totalFiles = knowledgeFiles.length
   const totalSize = knowledgeFiles.reduce((sum, file) => sum + file.size, 0)
   const totalChunks = knowledgeFiles.reduce((sum, file) => sum + (file.chunks || 0), 0)
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-slate-900 text-white p-6 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Book className="h-7 w-7 text-yellow-400" />
+                Knowledge Base
+              </h1>
+              <p className="mt-2 text-slate-300">
+                Upload and manage content to train your AI chatbots
+              </p>
+            </div>
+            <Button disabled className="bg-yellow-500 text-slate-900 font-semibold">
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Loading...
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-gray-200 rounded-lg h-32"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -503,8 +576,18 @@ export default function KnowledgePage() {
                   <Button variant="ghost" size="sm">
                     <Edit3 className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
-                    <Trash2 className="h-4 w-4" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => handleDelete(file.id)}
+                    disabled={deleting.has(file.id)}
+                  >
+                    {deleting.has(file.id) ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -514,13 +597,20 @@ export default function KnowledgePage() {
           {filteredFiles.length === 0 && (
             <div className="text-center py-12">
               <Book className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No content found</h3>
-              <p className="text-slate-600">
-                {searchQuery || selectedCategory !== 'all' 
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                {knowledgeFiles.length === 0 ? 'No Knowledge Base Content' : 'No content found'}
+              </h3>
+              <p className="text-slate-600 mb-4">
+                {searchQuery || selectedCategory !== 'all'
                   ? 'Try adjusting your search or filter criteria'
-                  : 'Upload your first file or add text content to get started'
+                  : 'Add your first knowledge content to train your AI bot'
                 }
               </p>
+              {knowledgeFiles.length === 0 && (
+                <p className="text-sm text-slate-500">
+                  Your bot will use this knowledge base to answer customer questions accurately.
+                </p>
+              )}
             </div>
           )}
         </CardContent>

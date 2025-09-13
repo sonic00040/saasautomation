@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getUserCompany } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
@@ -29,15 +30,26 @@ export default function AuthCallbackPage() {
           }
 
           if (data.user) {
-            setSuccess('Email verified successfully! Redirecting to dashboard...')
-            setTimeout(() => {
-              router.push('/dashboard')
-            }, 2000)
+            // Ensure user has a company (this will create one if it doesn't exist)
+            try {
+              await getUserCompany(data.user)
+              setSuccess('Email verified successfully! Setting up your account...')
+              setTimeout(() => {
+                router.push('/dashboard')
+              }, 2000)
+            } catch (companyError) {
+              console.error('Error setting up company:', companyError)
+              setSuccess('Email verified successfully! Redirecting to dashboard...')
+              setTimeout(() => {
+                router.push('/dashboard')
+              }, 2000)
+            }
           }
         } else {
           setError('No verification code found')
         }
-      } catch (err) {
+      } catch (error) {
+        console.error('Verification error:', error)
         setError('An unexpected error occurred during verification')
       } finally {
         setLoading(false)

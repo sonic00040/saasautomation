@@ -338,4 +338,121 @@ Selected Could Have features based on user feedback
 
 ---
 
+# PHASE 4: REAL DATA INTEGRATION FOR DASHBOARD OVERVIEW (CURRENT PHASE)
+
+## Phase 4: Real Data Integration for Dashboard Overview
+
+**STATUS: ✅ COMPLETED** - All Phase 4 tasks have been successfully implemented.
+
+### Overview
+Phase 4 focuses on replacing all mock/simulated data in the dashboard with real user-specific data from the database. This ensures new users see appropriate zero states and existing users see accurate metrics from their actual bot interactions.
+
+### Current Issues Addressed
+- **Fake Data Display**: Dashboard shows hardcoded values for new users (e.g., "2 Active Bots" for users with no bots)
+- **Inconsistent Metrics**: Success rates, message counts, and usage data are simulated rather than real
+- **Poor New User Experience**: New users see confusing fake metrics instead of helpful zero states
+
+### Tasks (7 tasks)
+
+#### 31. Update development todo plan with Phase 4 details
+- Document Phase 4 objectives and tasks
+- Create clear success criteria for real data integration
+- Update project timeline and priorities
+
+#### 32. Create API service layer for real data fetching
+- Build `src/lib/api.ts` with Supabase integration functions
+- Implement `getUserMetrics()`, `getUserBots()`, `getUserUsage()`, `getUserActivities()`
+- Add proper error handling and TypeScript types
+- Integrate with existing auth context for user-specific queries
+
+#### 33. Create database types and interfaces
+- Define TypeScript interfaces for dashboard data structures
+- Create types for bots, conversations, activities, and usage metrics
+- Ensure type safety across the application
+- Document data relationships and constraints
+
+#### 34. Extend database schema for dashboard needs
+- Add `bots` table for user bot configurations with connection status
+- Add `conversations` table to track message exchanges
+- Add `activities` table for real user action logging
+- Implement Row Level Security (RLS) policies for multi-tenant data
+
+#### 35. Update useRealtimeDashboard hook with real data
+- Replace mock data generation with real API calls
+- Implement proper loading and error states
+- Add user-specific data fetching based on auth context
+- Set up real-time subscriptions for live updates
+
+#### 36. Update dashboard page for real user experience
+- Fix "Active Bots" to show actual connected/configured bots
+- Replace "Total Messages" with real message count from user's conversations
+- Update "Success Rate" based on actual bot performance metrics
+- Connect "Monthly Usage" to real token consumption from usage_logs table
+- Implement zero states for new users with no data
+
+#### 37. Implement new user onboarding experience
+- Show appropriate zero states when no bots are configured
+- Display helpful onboarding hints and "Get Started" prompts
+- Add quick action buttons to guide new users to bot setup
+- Create empty state components with clear next steps
+
+### Integration with Existing Backend
+- **User Identity**: Connect dashboard to authenticated user via Supabase auth
+- **Companies Table**: Link frontend user accounts to backend company records
+- **Subscriptions**: Display current plan limits and billing cycle info
+- **Usage Logs**: Show real token consumption and remaining quota
+- **Knowledge Bases**: Display knowledge base content status
+
+### Success Criteria ✅ ALL COMPLETED
+- ✅ **DONE**: New users see zeros/empty states instead of fake metrics
+- ✅ **DONE**: Active users see real metrics from their actual bot interactions
+- ✅ **DONE**: Real-time updates work when bots receive messages
+- ✅ **DONE**: Monthly usage accurately reflects token consumption
+- ✅ **DONE**: Each user sees only their own personalized data
+- ✅ **DONE**: Dashboard loads quickly with proper loading states
+- ✅ **DONE**: Error handling gracefully manages API failures
+
+### Database Schema Additions Needed
+```sql
+-- Bots table for user bot configurations
+CREATE TABLE bots (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id),
+  company_id UUID REFERENCES companies(id),
+  name VARCHAR(255) NOT NULL,
+  platform VARCHAR(50) NOT NULL, -- 'telegram', 'whatsapp', etc.
+  token VARCHAR(500),
+  webhook_url VARCHAR(500),
+  is_active BOOLEAN DEFAULT false,
+  last_activity TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Conversations table for message tracking
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  bot_id UUID REFERENCES bots(id),
+  user_chat_id VARCHAR(255) NOT NULL,
+  platform VARCHAR(50) NOT NULL,
+  message_count INTEGER DEFAULT 0,
+  last_message_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Activities table for real user actions
+CREATE TABLE activities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id),
+  company_id UUID REFERENCES companies(id),
+  type VARCHAR(50) NOT NULL, -- 'message', 'bot_response', 'user_join', etc.
+  description TEXT NOT NULL,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
 *This development plan ensures a focused approach to deliver core value quickly while providing a clear roadmap for future enhancements using modern web technologies and best practices.*

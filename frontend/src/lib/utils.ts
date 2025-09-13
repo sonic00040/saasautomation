@@ -1,3 +1,5 @@
+'use client'
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { useEffect, useState } from "react"
