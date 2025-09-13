@@ -59,7 +59,7 @@ export default function DashboardLayout({
       {/* Enhanced Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gradient-to-b from-white to-gray-50/50 shadow-xl transform ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:translate-x-0 transition-all duration-300 ease-in-out lg:relative lg:flex border-r border-gray-200/50`}>
+      } lg:translate-x-0 transition-all duration-300 ease-in-out lg:relative lg:flex border-r border-gray-200/50`} data-tour="sidebar">
         {/* Enhanced Sidebar header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200/50 bg-white/80 backdrop-blur-sm">
           <Link href="/dashboard" className="flex items-center space-x-3 group">

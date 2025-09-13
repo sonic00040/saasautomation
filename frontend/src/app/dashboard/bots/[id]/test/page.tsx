@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import { formatTimeOnly } from '@/lib/utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -232,7 +233,7 @@ export default function BotTestPage() {
                           <p className="text-sm">{msg.content}</p>
                           <div className="flex items-center gap-2 mt-2 text-xs opacity-70">
                             <Clock className="h-3 w-3" />
-                            <span>{msg.timestamp.toLocaleTimeString()}</span>
+                            <span>{formatTimeOnly(msg.timestamp)}</span>
                             {msg.responseTime && (
                               <>
                                 <span>•</span>

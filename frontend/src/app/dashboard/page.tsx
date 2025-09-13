@@ -5,10 +5,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/ui/stat-card"
 import { Progress } from "@/components/ui/progress"
-import { 
-  Bot, 
-  MessageSquare, 
-  TrendingUp, 
+import { useRealtimeDashboard } from "@/hooks/use-realtime-dashboard"
+import { useToast } from "@/contexts/toast-context"
+import { useTour, TourProgress } from "@/components/ui/tour"
+import { dashboardTour } from "@/lib/tours"
+import { formatDateTime, useClientSide } from "@/lib/utils"
+import {
+  Bot,
+  MessageSquare,
+  TrendingUp,
   Plus,
   Activity,
   Clock,
@@ -18,22 +23,45 @@ import {
   Upload,
   Settings,
   Users,
-  Target
+  Target,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  Play
 } from "lucide-react"
 
 export default function DashboardPage() {
-  // Mock data - in real app this would come from API
+  const { metrics, activities, isConnected, refresh } = useRealtimeDashboard()
+  const { success } = useToast()
+  const { startTour, isActive } = useTour()
+  const isClient = useClientSide()
+
+  const handleStartTour = () => {
+    startTour(dashboardTour)
+  }
+
+  // Mock data - merged with real-time metrics
   const stats = {
-    totalMessages: 1247,
+    totalMessages: metrics.totalMessages || 1247,
     totalBots: 2,
-    activeConversations: 23,
-    avgResponseTime: "1.2s",
-    successRate: 94,
-    messagesThisMonth: 892,
+    activeConversations: metrics.activeUsers || 23,
+    avgResponseTime: `${(metrics.avgResponseTime / 1000).toFixed(1)}s`,
+    successRate: Math.round((1 - metrics.errorRate / 100) * 100),
+    messagesThisMonth: metrics.totalMessages || 892,
     monthlyLimit: 1000,
   }
 
-  const recentActivity = [
+  // Use real-time activities if available, otherwise fall back to mock data
+  const recentActivity = activities.length > 0 ? activities.slice(0, 4).map(activity => ({
+    id: activity.id,
+    type: activity.type,
+    description: activity.message,
+    bot: "AI Bot",
+    time: formatDateTime(activity.timestamp),
+    status: activity.type === 'error' ? 'pending' :
+            activity.type === 'bot_response' ? 'resolved' :
+            activity.type === 'user_join' ? 'active' : 'success'
+  })) : [
     {
       id: 1,
       type: "message",
@@ -103,16 +131,71 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="pb-4 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Welcome back! Here&apos;s what&apos;s happening with your chatbots.
-        </p>
+      <TourProgress />
+
+      {/* Enhanced Page Header with Real-time Status */}
+      <div className="pb-4 border-b border-gray-200" data-tour="dashboard-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Welcome back! Here&apos;s what&apos;s happening with your chatbots.
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            {/* Real-time Connection Status */}
+            <div className="flex items-center space-x-2" data-tour="realtime-status">
+              {isConnected ? (
+                <>
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <Wifi className="h-4 w-4 text-green-600" />
+                  <span className="text-sm text-green-700 font-medium">Live</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                  <WifiOff className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm text-gray-500">Offline</span>
+                </>
+              )}
+            </div>
+
+            {/* Tour Button */}
+            {!isActive && (
+              <Button
+                onClick={handleStartTour}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                <Play className="h-4 w-4" />
+                <span>Tour</span>
+              </Button>
+            )}
+
+            {/* Refresh Button */}
+            <Button
+              onClick={refresh}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Last Updated Timestamp */}
+        {metrics.lastUpdated && isClient && (
+          <p className="mt-2 text-xs text-gray-500">
+            Last updated: {formatDateTime(metrics.lastUpdated)}
+          </p>
+        )}
       </div>
 
       {/* Enhanced Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6" data-tour="stats-cards">
         <StatCard
           title="Total Messages"
           value={stats.totalMessages}
@@ -157,7 +240,7 @@ export default function DashboardPage() {
       {/* Usage & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Enhanced Usage Card */}
-        <Card variant="gradient">
+        <Card variant="gradient" data-tour="usage-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -216,7 +299,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Enhanced Quick Actions */}
-        <Card variant="elevated">
+        <Card variant="elevated" data-tour="quick-actions">
           <CardHeader>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
@@ -261,7 +344,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Enhanced Recent Activity Timeline */}
-      <Card variant="glass">
+      <Card variant="glass" data-tour="activity-feed">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

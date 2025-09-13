@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { UsageForecastCard } from "@/components/analytics/usage-forecast-card"
 import { 
   BarChart3, 
   TrendingUp, 
@@ -465,6 +466,20 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Usage Forecasting Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Usage Forecasting</h2>
+            <p className="text-sm text-gray-600">
+              Predictive analysis and recommendations based on usage patterns
+            </p>
+          </div>
+        </div>
+
+        <UsageForecastCard />
+      </div>
     </div>
   )
 }

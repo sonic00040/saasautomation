@@ -3,6 +3,8 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
+import { ToastProvider } from "@/contexts/toast-context";
+import { TourProvider } from "@/components/ui/tour";
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
@@ -23,7 +25,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            <TourProvider>
+              {children}
+            </TourProvider>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>
