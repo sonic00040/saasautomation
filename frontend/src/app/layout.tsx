@@ -4,12 +4,8 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 
-const geistSans = GeistSans({
-  variable: "--font-sans",
-});
-const geistMono = GeistMono({
-  variable: "--font-mono",
-});
+const geistSans = GeistSans;
+const geistMono = GeistMono;
 
 export const metadata: Metadata = {
   title: "BotAI - Customer Support Chatbot SaaS",
