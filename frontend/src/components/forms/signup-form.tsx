@@ -53,7 +53,7 @@ export function SignUpForm() {
       // supabase sends a confirmation email
       // you may want to show a message to the user
       // and redirect them to the login page
-      router.push("/login")
+      router.push("/auth/login")
     }
   }
 

@@ -5,17 +5,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
-import { 
-  Bot, 
-  LayoutDashboard, 
-  MessageSquare, 
-  FileText, 
-  BarChart3, 
-  Settings, 
+import { QuickActionsBar } from '@/components/ui/quick-actions-bar'
+import {
+  Bot,
+  LayoutDashboard,
+  MessageSquare,
+  FileText,
+  BarChart3,
+  Settings,
   LogOut,
   Menu,
   X,
-  User
+  User,
+  Users,
+  CreditCard
 } from 'lucide-react'
 
 const navigation = [
@@ -24,6 +27,8 @@ const navigation = [
   { name: 'Conversations', href: '/dashboard/conversations', icon: MessageSquare },
   { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: FileText },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Team', href: '/dashboard/team', icon: Users },
+  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
@@ -210,6 +215,9 @@ export default function DashboardLayout({
           </div>
         </main>
       </div>
+
+      {/* Quick Actions Bar */}
+      <QuickActionsBar />
     </div>
   )
 }

@@ -23,14 +23,17 @@ export default function Home() {
               <span className="font-bold text-xl text-gray-900">BotAI</span>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
-              <Link href="#features" className="text-gray-600 hover:text-gray-900">
+              <Link href="/features" className="text-gray-600 hover:text-gray-900">
                 Features
               </Link>
               <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
                 Pricing
               </Link>
-              <Link href="#about" className="text-gray-600 hover:text-gray-900">
+              <Link href="/about" className="text-gray-600 hover:text-gray-900">
                 About
+              </Link>
+              <Link href="/contact" className="text-gray-600 hover:text-gray-900">
+                Contact
               </Link>
             </nav>
             <div className="flex items-center space-x-4">
