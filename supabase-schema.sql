@@ -9,11 +9,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Stores user companies/organizations
 CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    telegram_bot_token TEXT, -- For backend compatibility
+    email TEXT NOT NULL, -- Business email (can differ from login email)
+    platform TEXT NOT NULL CHECK (platform IN ('telegram', 'whatsapp')),
+    telegram_bot_token TEXT, -- For backend compatibility (deprecated - use bots table)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id) -- One company per user
 );
 
 -- 2. PLANS TABLE
@@ -109,8 +112,11 @@ CREATE TABLE IF NOT EXISTS usage_logs (
 
 -- CREATE INDEXES for better performance
 CREATE INDEX IF NOT EXISTS idx_companies_email ON companies(email);
+CREATE INDEX IF NOT EXISTS idx_companies_user_id ON companies(user_id);
+CREATE INDEX IF NOT EXISTS idx_companies_platform ON companies(platform);
 CREATE INDEX IF NOT EXISTS idx_bots_company_id ON bots(company_id);
 CREATE INDEX IF NOT EXISTS idx_bots_user_id ON bots(user_id);
+CREATE INDEX IF NOT EXISTS idx_bots_platform ON bots(platform);
 CREATE INDEX IF NOT EXISTS idx_activities_company_id ON activities(company_id);
 CREATE INDEX IF NOT EXISTS idx_activities_user_id ON activities(user_id);
 CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activities(created_at DESC);
@@ -136,12 +142,40 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- Platform enforcement trigger function
+-- Ensures all bots created for a company match the company's platform
+CREATE OR REPLACE FUNCTION check_bot_platform_matches_company()
+RETURNS TRIGGER AS $$
+DECLARE
+    company_platform TEXT;
+BEGIN
+    -- Get the company's platform
+    SELECT platform INTO company_platform
+    FROM companies
+    WHERE id = NEW.company_id;
+
+    -- Check if bot platform matches company platform
+    IF NEW.platform != company_platform THEN
+        RAISE EXCEPTION 'Bot platform (%) does not match company platform (%). Cannot create % bot for % company.',
+            NEW.platform, company_platform, NEW.platform, company_platform;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Create triggers for updated_at columns
 CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_bots_updated_at BEFORE UPDATE ON bots FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_knowledge_bases_updated_at BEFORE UPDATE ON knowledge_bases FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Create trigger to enforce platform matching
+CREATE TRIGGER enforce_bot_platform_matches_company
+    BEFORE INSERT OR UPDATE ON bots
+    FOR EACH ROW
+    EXECUTE FUNCTION check_bot_platform_matches_company();
 
 COMMENT ON TABLE companies IS 'Stores user companies/organizations';
 COMMENT ON TABLE plans IS 'Available subscription plans';
