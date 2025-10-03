@@ -14,24 +14,24 @@ ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
 
 -- ===== COMPANIES TABLE POLICIES =====
 
--- Users can read their own company (by email)
+-- Users can read their own company (by user_id)
 CREATE POLICY "Users can read own company" ON companies
 FOR SELECT USING (
-    email = auth.jwt() ->> 'email'
+    user_id = auth.uid()
 );
 
--- Users can create companies (for initial signup)
+-- Users can create companies (for initial signup/onboarding)
 CREATE POLICY "Users can create companies" ON companies
 FOR INSERT WITH CHECK (
-    email = auth.jwt() ->> 'email'
+    user_id = auth.uid()
 );
 
 -- Users can update their own company
 CREATE POLICY "Users can update own company" ON companies
 FOR UPDATE USING (
-    email = auth.jwt() ->> 'email'
+    user_id = auth.uid()
 ) WITH CHECK (
-    email = auth.jwt() ->> 'email'
+    user_id = auth.uid()
 );
 
 -- ===== PLANS TABLE POLICIES =====
@@ -46,7 +46,7 @@ FOR SELECT USING (true);
 CREATE POLICY "Users can read own subscriptions" ON subscriptions
 FOR SELECT USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 );
 
@@ -54,7 +54,7 @@ FOR SELECT USING (
 CREATE POLICY "Users can create subscriptions" ON subscriptions
 FOR INSERT WITH CHECK (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 );
 
@@ -62,11 +62,11 @@ FOR INSERT WITH CHECK (
 CREATE POLICY "Users can update own subscriptions" ON subscriptions
 FOR UPDATE USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 ) WITH CHECK (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 );
 
@@ -76,7 +76,7 @@ FOR UPDATE USING (
 CREATE POLICY "Users can read own bots" ON bots
 FOR SELECT USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
     OR user_id = auth.uid()::text
 );
@@ -85,7 +85,7 @@ FOR SELECT USING (
 CREATE POLICY "Users can create bots" ON bots
 FOR INSERT WITH CHECK (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
     AND user_id = auth.uid()::text
 );
@@ -94,12 +94,12 @@ FOR INSERT WITH CHECK (
 CREATE POLICY "Users can update own bots" ON bots
 FOR UPDATE USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
     AND user_id = auth.uid()::text
 ) WITH CHECK (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
     AND user_id = auth.uid()::text
 );
@@ -108,7 +108,7 @@ FOR UPDATE USING (
 CREATE POLICY "Users can delete own bots" ON bots
 FOR DELETE USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
     AND user_id = auth.uid()::text
 );
@@ -121,7 +121,7 @@ FOR SELECT USING (
     bot_id IN (
         SELECT id FROM bots
         WHERE company_id IN (
-            SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+            SELECT id FROM companies WHERE user_id = auth.uid()
         )
     )
 );
@@ -132,14 +132,14 @@ FOR ALL USING (
     bot_id IN (
         SELECT id FROM bots
         WHERE company_id IN (
-            SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+            SELECT id FROM companies WHERE user_id = auth.uid()
         )
     )
 ) WITH CHECK (
     bot_id IN (
         SELECT id FROM bots
         WHERE company_id IN (
-            SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+            SELECT id FROM companies WHERE user_id = auth.uid()
         )
     )
 );
@@ -150,7 +150,7 @@ FOR ALL USING (
 CREATE POLICY "Users can read own activities" ON activities
 FOR SELECT USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
     OR user_id = auth.uid()
 );
@@ -159,7 +159,7 @@ FOR SELECT USING (
 CREATE POLICY "Users can create activities" ON activities
 FOR INSERT WITH CHECK (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
     AND user_id = auth.uid()
 );
@@ -170,7 +170,7 @@ FOR INSERT WITH CHECK (
 CREATE POLICY "Users can read own knowledge" ON knowledge_bases
 FOR SELECT USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 );
 
@@ -178,7 +178,7 @@ FOR SELECT USING (
 CREATE POLICY "Users can create knowledge" ON knowledge_bases
 FOR INSERT WITH CHECK (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 );
 
@@ -186,11 +186,11 @@ FOR INSERT WITH CHECK (
 CREATE POLICY "Users can update own knowledge" ON knowledge_bases
 FOR UPDATE USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 ) WITH CHECK (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 );
 
@@ -198,7 +198,7 @@ FOR UPDATE USING (
 CREATE POLICY "Users can delete own knowledge" ON knowledge_bases
 FOR DELETE USING (
     company_id IN (
-        SELECT id FROM companies WHERE email = auth.jwt() ->> 'email'
+        SELECT id FROM companies WHERE user_id = auth.uid()
     )
 );
 
@@ -210,7 +210,7 @@ FOR SELECT USING (
     subscription_id IN (
         SELECT s.id FROM subscriptions s
         JOIN companies c ON s.company_id = c.id
-        WHERE c.email = auth.jwt() ->> 'email'
+        WHERE c.user_id = auth.uid()
     )
 );
 
@@ -220,7 +220,7 @@ FOR INSERT WITH CHECK (
     subscription_id IN (
         SELECT s.id FROM subscriptions s
         JOIN companies c ON s.company_id = c.id
-        WHERE c.email = auth.jwt() ->> 'email'
+        WHERE c.user_id = auth.uid()
     )
 );
 
@@ -232,7 +232,7 @@ RETURNS UUID
 LANGUAGE sql
 SECURITY DEFINER
 AS $$
-    SELECT id FROM companies WHERE email = auth.jwt() ->> 'email' LIMIT 1;
+    SELECT id FROM companies WHERE user_id = auth.uid() LIMIT 1;
 $$;
 
 -- Grant access to the helper function

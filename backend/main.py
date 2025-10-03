@@ -67,9 +67,9 @@ def verify_telegram_webhook(request: Request, x_telegram_bot_api_secret_token: O
     return True
 
 @app.post("/webhook/{telegram_bot_token}")
-@limiter.limit("60/minute")  # 60 requests per minute per IP
+# @limiter.limit("60/minute")  # 60 requests per minute per IP - DISABLED for testing (Redis not running)
 async def handle_webhook(
-    telegram_bot_token: str, 
+    telegram_bot_token: str,
     payload: TelegramWebhookPayload,
     request: Request,
     authenticated: bool = Depends(verify_telegram_webhook)
@@ -151,6 +151,108 @@ async def handle_webhook(
             pass  # Don't let telegram errors crash the whole handler
         
         raise HTTPException(status_code=500, detail="Internal server error")
+
+# WhatsApp Webhook Placeholder
+@app.post("/webhook/whatsapp/{business_phone}")
+async def handle_whatsapp_webhook(
+    business_phone: str,
+    payload: dict,
+    request: Request
+):
+    """
+    WhatsApp webhook handler (placeholder for future implementation)
+
+    Expected payload structure from WhatsApp Business API:
+    - messages[0].from: sender phone
+    - messages[0].text.body: message content
+    - etc.
+    """
+    logger.info(f"WhatsApp webhook received for {business_phone}")
+
+    # TODO: Implement WhatsApp message handling
+    # Similar flow to Telegram but with WhatsApp-specific logic
+    # 1. Extract sender phone and message from payload
+    # 2. Identify company by business_phone
+    # 3. Get subscription and knowledge base
+    # 4. Generate AI response
+    # 5. Send response via WhatsApp Business API
+
+    return {
+        "status": "whatsapp_ready",
+        "message": "WhatsApp integration coming soon",
+        "business_phone": business_phone
+    }
+
+# Webhook Setup Endpoint
+@app.post("/api/webhooks/setup")
+async def setup_webhook(
+    platform: str,
+    bot_token: Optional[str] = None,
+    business_phone: Optional[str] = None
+):
+    """
+    Automatically sets webhook for production environment
+    Development: Returns webhook URL for manual setup
+    """
+    import os
+    import requests
+
+    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+    environment = os.getenv("ENVIRONMENT", "development")
+
+    if platform == "telegram":
+        if not bot_token:
+            raise HTTPException(status_code=400, detail="bot_token is required for Telegram")
+
+        webhook_url = f"{backend_url}/webhook/{bot_token}"
+
+        if environment == "production":
+            # Auto-set Telegram webhook
+            try:
+                telegram_api = f"https://api.telegram.org/bot{bot_token}/setWebhook"
+                response = requests.post(telegram_api, json={
+                    "url": webhook_url,
+                    "secret_token": config.TELEGRAM_WEBHOOK_SECRET if hasattr(config, 'TELEGRAM_WEBHOOK_SECRET') else None
+                })
+
+                if response.status_code == 200:
+                    logger.info(f"Webhook set successfully for Telegram bot: {bot_token[:10]}...")
+                    return {
+                        "status": "success",
+                        "webhook_url": webhook_url,
+                        "environment": environment
+                    }
+                else:
+                    raise HTTPException(status_code=500, detail=f"Failed to set webhook: {response.text}")
+
+            except Exception as e:
+                logger.error(f"Error setting Telegram webhook: {str(e)}")
+                raise HTTPException(status_code=500, detail=str(e))
+        else:
+            # Development: Return URL for manual setup
+            return {
+                "status": "manual",
+                "webhook_url": webhook_url,
+                "environment": environment,
+                "instructions": "Set this webhook manually using @BotFather or Telegram API"
+            }
+
+    elif platform == "whatsapp":
+        if not business_phone:
+            raise HTTPException(status_code=400, detail="business_phone is required for WhatsApp")
+
+        webhook_url = f"{backend_url}/webhook/whatsapp/{business_phone}"
+
+        # WhatsApp webhooks must be configured in Meta Business Suite
+        return {
+            "status": "manual",
+            "webhook_url": webhook_url,
+            "environment": environment,
+            "note": "Configure this webhook in Meta Business Suite > WhatsApp > Configuration > Webhooks"
+        }
+
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
 
 if __name__ == "__main__":
     import uvicorn
