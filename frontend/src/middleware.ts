@@ -40,6 +40,7 @@ export async function middleware(req: NextRequest) {
 
   // Rate limiting for API routes (basic implementation)
   if (req.nextUrl.pathname.startsWith('/api/')) {
+    // @ts-expect-error - NextRequest.ip exists in some environments but not in types
     const ip = req.ip || req.headers.get('x-forwarded-for') || 'unknown'
     // In production, implement proper rate limiting with Redis or similar
     console.log(`API request from IP: ${ip} to ${req.nextUrl.pathname}`)
