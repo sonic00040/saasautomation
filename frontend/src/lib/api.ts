@@ -386,18 +386,21 @@ export async function getUserUsage(companyId: string): Promise<UsageData> {
 
     if (error) {
       console.error('Error fetching usage:', error)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const plan = subscription.plan as any
       return {
         currentUsage: 0,
-        monthlyLimit: subscription.plan.token_limit,
-        remainingTokens: subscription.plan.token_limit,
+        monthlyLimit: plan.token_limit,
+        remainingTokens: plan.token_limit,
         daysToReset: 30,
         usagePercentage: 0,
-        planName: subscription.plan.name
+        planName: plan.name
       }
     }
 
     const currentUsage = usageResult || 0
-    const monthlyLimit = subscription.plan.token_limit
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const monthlyLimit = (subscription.plan as any).token_limit
     const remainingTokens = Math.max(0, monthlyLimit - currentUsage)
     const usagePercentage = monthlyLimit > 0 ? (currentUsage / monthlyLimit) * 100 : 0
 
@@ -411,7 +414,8 @@ export async function getUserUsage(companyId: string): Promise<UsageData> {
       remainingTokens,
       daysToReset,
       usagePercentage,
-      planName: subscription.plan.name
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      planName: (subscription.plan as any).name
     }
   } catch (error) {
     console.error('Error calculating usage:', error)
