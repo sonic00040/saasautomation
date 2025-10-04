@@ -6,6 +6,26 @@
 [![Next.js 15](https://img.shields.io/badge/Next.js-15-black)]()
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688)]()
 [![Supabase](https://img.shields.io/badge/Supabase-Enabled-3ECF8E)]()
+[![GitHub](https://img.shields.io/badge/GitHub-Automated%20Deploy-blue)](https://github.com/sonic00040/saasautomation)
+
+## 🚀 Quick Deploy (Automated!)
+
+**GitHub Repository**: [`sonic00040/saasautomation`](https://github.com/sonic00040/saasautomation)
+
+### One-Time Setup (10 minutes):
+1. **[Deploy Frontend to Vercel](.github/VERCEL_SETUP.md)** (~5 min)
+2. **[Deploy Backend to Render](.github/RENDER_SETUP.md)** (~5 min)
+
+### After Setup:
+```bash
+git push origin main
+# ✨ Auto-deploys frontend & backend!
+# ✅ Live in ~3 minutes
+```
+
+**See [GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md) for complete guide**
+
+---
 
 ## 🚀 Quick Start
 
@@ -49,7 +69,15 @@
 
 ## 📚 Documentation
 
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide for Vercel & Railway
+### Deployment Guides
+- **[GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md)** - ⭐ **Master guide for automated GitHub deployment**
+- **[.github/VERCEL_SETUP.md](.github/VERCEL_SETUP.md)** - Vercel (frontend) setup
+- **[.github/RENDER_SETUP.md](.github/RENDER_SETUP.md)** - Render (backend) setup
+- **[FREE_TIER_DEPLOYMENT.md](FREE_TIER_DEPLOYMENT.md)** - 100% free tier deployment ($0/month)
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Alternative deployment options
+- **[.env.example](.env.example)** - Environment variables template
+
+### Other Documentation
 - **[FIXES_SUMMARY.md](FIXES_SUMMARY.md)** - All fixes applied for production readiness
 
 ## 🏗️ Architecture
@@ -161,27 +189,34 @@ REDIS_URL=redis://localhost:6379
 
 ## 🚀 Deployment
 
-### Recommended Stack:
-- **Frontend**: Vercel (Free tier)
-- **Backend**: Railway ($5/mo)
-- **Database**: Supabase (Free tier)
+### ⭐ Recommended: GitHub Auto-Deploy (Free Tier!)
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
+**Cost**: $0/month 🎉
 
-### Quick Deploy:
+| Service | Tier | Purpose |
+|---------|------|---------|
+| **Vercel** | Free | Frontend (Next.js) |
+| **Render** | Free | Backend (FastAPI) |
+| **Supabase** | Free | Database (PostgreSQL) |
 
-**Frontend (Vercel)**:
-```bash
-cd frontend
-vercel --prod
-```
+**Setup**: One-time 10-minute configuration → Every `git push` auto-deploys!
 
-**Backend (Railway)**:
-1. Go to https://railway.app
-2. Import GitHub repository
-3. Set root directory to `backend`
-4. Add environment variables
-5. Deploy
+📖 **[Complete GitHub Deployment Guide →](GITHUB_DEPLOYMENT.md)**
+
+### Quick Deploy Steps:
+
+1. **[Setup Vercel](.github/VERCEL_SETUP.md)** - Import GitHub repo, add env vars (~5 min)
+2. **[Setup Render](.github/RENDER_SETUP.md)** - Deploy as Blueprint, add env vars (~5 min)
+3. **Push to Deploy** - `git push origin main` → Auto-deploys everything!
+
+**Free Tier Trade-offs**:
+- ⚠️ Backend cold starts after 15 min (first request takes ~60 seconds)
+- ✅ Perfect for MVP, testing, personal projects
+- 💰 Upgrade to paid tiers when you get real users
+
+### Alternative Options:
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for Railway, DigitalOcean, and other platforms.
 
 ## 📊 Database Schema
 
