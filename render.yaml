@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: botai-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PORT
+        value: 8000
+      # Required secrets - Add these in Render Dashboard
+      - key: GOOGLE_API_KEY
+        sync: false  # Must be set manually in Render Dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+    autoDeploy: true
+
+# Free Tier Limitations:
+# - Service spins down after 15 minutes of inactivity
+# - Cold start takes 50-60 seconds on next request
+# - 750 free instance hours per month
+# - 0.5 GB RAM, shared CPU
+#
+# Setup Instructions:
+# 1. Push code to GitHub
+# 2. Go to https://render.com/dashboard
+# 3. Click "New" > "Blueprint"
+# 4. Connect your repository
+# 5. Add environment variables in Dashboard
+# 6. Deploy
+#
+# To reduce cold starts (optional):
+# - Use external ping service (e.g., UptimeRobot) to ping /health every 14 min
+# - Note: Consumes monthly hours faster
+#
+# Upgrade to Starter ($7/mo) for always-on service
