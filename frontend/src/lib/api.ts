@@ -242,9 +242,12 @@ export async function getUserMetrics(user: User): Promise<DashboardMetrics> {
     const totalMessages = botsData.reduce((sum, bot) => sum + bot.messageCount, 0)
 
     const subscription = subscriptionData
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const monthlyLimit = (subscription?.plan as any)?.token_limit || 1000
     const tokensUsed = usageData.currentUsage
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const planName = (subscription?.plan as any)?.name || 'Free Plan'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const planPrice = (subscription?.plan as any)?.price || 0
 
     const successRate = totalMessages > 0 ? Math.round((totalMessages * 0.97)) : 0
