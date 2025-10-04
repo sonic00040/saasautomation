@@ -3,9 +3,8 @@ services:
     name: botai-backend
     runtime: python
     plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: sh -c 'cd /opt/render/project/src/backend && exec uvicorn main:app --host 0.0.0.0 --port $PORT'
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: ENVIRONMENT
