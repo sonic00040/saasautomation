@@ -257,6 +257,17 @@ async def setup_webhook(
 
                 if response.status_code == 200:
                     logger.info(f"Webhook set successfully for Telegram bot: {bot_token[:10]}...")
+
+                    # Update bot record in database with webhook URL and set as active
+                    try:
+                        supabase.table('bots').update({
+                            'webhook_url': webhook_url,
+                            'is_active': True
+                        }).eq('token', bot_token).execute()
+                        logger.info(f"Updated bot in database with webhook URL")
+                    except Exception as db_error:
+                        logger.error(f"Failed to update bot in database: {str(db_error)}")
+
                     return {
                         "status": "success",
                         "webhook_url": webhook_url,
