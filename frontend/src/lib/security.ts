@@ -185,6 +185,7 @@ export class RateLimiter {
   }
 
   static getKey(req: NextRequest, type: string): string {
+    // @ts-expect-error - NextRequest.ip exists in some environments but not in types
     const ip = req.ip || req.headers.get('x-forwarded-for') || 'unknown'
     return `${type}:${ip}`
   }
