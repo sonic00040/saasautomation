@@ -45,10 +45,21 @@ def send_telegram_message(token: str, chat_id: int, text: str, retries: int = 3)
     return False
 
 def get_company_by_token(token: str) -> Optional[Dict[Any, Any]]:
-    """Fetches a company from the database based on the Telegram token."""
+    """Fetches a company from the database based on the bot token."""
     try:
-        response = supabase.table('companies').select('*').eq('telegram_bot_token', token).maybe_single().execute()
-        return response.data
+        # First, find the bot by token
+        bot_response = supabase.table('bots').select('company_id').eq('token', token).maybe_single().execute()
+
+        if not bot_response.data:
+            # Fallback to old method for backward compatibility
+            logger.warning(f"Bot not found in bots table, checking companies.telegram_bot_token")
+            response = supabase.table('companies').select('*').eq('telegram_bot_token', token).maybe_single().execute()
+            return response.data
+
+        # Get the company using the bot's company_id
+        company_id = bot_response.data['company_id']
+        company_response = supabase.table('companies').select('*').eq('id', company_id).maybe_single().execute()
+        return company_response.data
     except PostgrestAPIError as e:
         logger.error(f"Database error fetching company: {e}")
         return None
