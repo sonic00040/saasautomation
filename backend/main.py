@@ -6,8 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from backend import services
-from backend import config
+import backend.services as services
+import backend.config as config
 from datetime import datetime
 import hmac
 import hashlib
