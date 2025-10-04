@@ -196,14 +196,14 @@ export default function ContactPage() {
         <div className="max-w-6xl mx-auto text-center">
           <Badge variant="outline" size="lg" className="mb-6">
             <Heart className="h-4 w-4 mr-2" />
-            We're Here to Help
+            We&apos;re Here to Help
           </Badge>
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
             Get in Touch with
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Our Support Team</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Whether you have questions, need technical support, or want to explore how our platform can help your business, we're here to assist you every step of the way.
+            Whether you have questions, need technical support, or want to explore how our platform can help your business, we&apos;re here to assist you every step of the way.
           </p>
         </div>
       </section>
@@ -269,7 +269,7 @@ export default function ContactPage() {
                   Send us a Message
                 </CardTitle>
                 <CardDescription>
-                  Fill out the form below and we'll get back to you as soon as possible
+                  Fill out the form below and we&apos;ll get back to you as soon as possible
                 </CardDescription>
               </CardHeader>
 
@@ -277,7 +277,7 @@ export default function ContactPage() {
                 <div className="text-center py-12">
                   <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Message Sent Successfully!</h3>
-                  <p className="text-gray-600">We'll get back to you within 2 hours during business hours.</p>
+                  <p className="text-gray-600">We&apos;ll get back to you within 2 hours during business hours.</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">

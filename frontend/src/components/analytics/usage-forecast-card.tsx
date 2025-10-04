@@ -141,11 +141,12 @@ export function UsageForecastCard() {
                   dataKey="predicted"
                   stroke="#3b82f6"
                   strokeWidth={2}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   dot={(props: any) => {
                     if (props.payload && props.payload.type === 'historical') {
                       return <circle key={`historical-${props.index || props.payload.date}`} cx={props.cx} cy={props.cy} r={3} fill="#3b82f6" />
                     }
-                    return null
+                    return <></>
                   }}
                   connectNulls={false}
                 />
@@ -156,11 +157,12 @@ export function UsageForecastCard() {
                   stroke="#10b981"
                   strokeWidth={2}
                   strokeDasharray="5 5"
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   dot={(props: any) => {
                     if (props.payload && props.payload.type === 'forecast') {
                       return <circle key={`forecast-${props.index || props.payload.date}`} cx={props.cx} cy={props.cy} r={3} fill="#10b981" />
                     }
-                    return null
+                    return <></>
                   }}
                 />
 

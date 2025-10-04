@@ -12,9 +12,22 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
-# Bot tokens
-URBANSTEP_TOKEN="7953941413:AAFvR6X24fLYBZ2CtjiPOj7R9CCOV0qx5LY"
-TECHNOVA_TOKEN="8096188813:AAFIxWRL1oQwSAtG3wVF1Fcl5BT297CwCGo"
+# Bot tokens - Load from environment variables
+# SECURITY: Never hardcode bot tokens in scripts!
+# Set these in your environment or .env file before running this script
+URBANSTEP_TOKEN="${URBANSTEP_BOT_TOKEN:-}"
+TECHNOVA_TOKEN="${TECHNOVA_BOT_TOKEN:-}"
+
+# Check if tokens are set
+if [ -z "$URBANSTEP_TOKEN" ] || [ -z "$TECHNOVA_TOKEN" ]; then
+    echo -e "${RED}❌ ERROR: Bot tokens not set in environment${NC}"
+    echo -e "${YELLOW}Please set the following environment variables:${NC}"
+    echo "   export URBANSTEP_BOT_TOKEN='your_urbanstep_token_here'"
+    echo "   export TECHNOVA_BOT_TOKEN='your_technova_token_here'"
+    echo ""
+    echo -e "${YELLOW}Or add them to your .env file${NC}"
+    exit 1
+fi
 
 echo -e "${BOLD}${BLUE}"
 echo "╔════════════════════════════════════════════════════════════════════╗"
@@ -83,7 +96,7 @@ echo -e "${BOLD}${BLUE}╚══════════════════
 echo ""
 
 echo -e "${BOLD}${YELLOW}🤖 UrbanStep Footwear Bot${NC}"
-echo -e "${BLUE}Token:${NC} $URBANSTEP_TOKEN"
+echo -e "${BLUE}Token:${NC} ${URBANSTEP_TOKEN:0:10}...${URBANSTEP_TOKEN: -5} (masked for security)"
 echo ""
 echo -e "${GREEN}Sample Questions (about footwear/shoes):${NC}"
 echo "   • What products do you sell?"
@@ -99,7 +112,7 @@ echo "────────────────────────�
 echo ""
 
 echo -e "${BOLD}${YELLOW}📱 TechNova Electronics Bot${NC}"
-echo -e "${BLUE}Token:${NC} $TECHNOVA_TOKEN"
+echo -e "${BLUE}Token:${NC} ${TECHNOVA_TOKEN:0:10}...${TECHNOVA_TOKEN: -5} (masked for security)"
 echo ""
 echo -e "${GREEN}Sample Questions (about electronics):${NC}"
 echo "   • What products do you sell?"

@@ -26,8 +26,9 @@ export function KnowledgeBaseEditor({ botId, initialContent = '', onSave, onClos
       await onSave(content)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to save knowledge base')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save knowledge base'
+      setError(message)
     } finally {
       setLoading(false)
     }

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import services
 import config
@@ -11,6 +12,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import redis
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -27,7 +29,32 @@ except Exception as e:
     logger.warning(f"Redis not available, using in-memory rate limiting: {e}")
     limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI()
+app = FastAPI(
+    title="BotAI Backend API",
+    description="Backend API for BotAI chatbot platform",
+    version="1.0.0"
+)
+
+# CORS configuration
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+]
+
+# In production, add your frontend domain
+if config.ENVIRONMENT == "production":
+    frontend_url = os.getenv("FRONTEND_URL")
+    if frontend_url:
+        allowed_origins.append(frontend_url)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if config.ENVIRONMENT == "development" else allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -49,6 +76,15 @@ class TelegramWebhookPayload(BaseModel):
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for monitoring and preventing cold starts"""
+    return {
+        "status": "healthy",
+        "environment": config.ENVIRONMENT,
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 def verify_telegram_webhook(request: Request, x_telegram_bot_api_secret_token: Optional[str] = Header(None)):
     """Verify that the request comes from Telegram using secret token validation"""

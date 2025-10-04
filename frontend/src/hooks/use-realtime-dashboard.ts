@@ -142,14 +142,14 @@ export function useRealtimeDashboard() {
       onInsert: (payload) => {
         console.log('New activity:', payload)
 
-        if (payload.new && payload.new.user_id === user?.id) {
+        if (payload.new && (payload.new as Record<string, unknown>).user_id === user?.id) {
           const newActivity: Activity = {
-            id: payload.new.id,
-            type: payload.new.type,
-            description: payload.new.description,
-            timestamp: payload.new.created_at,
-            metadata: payload.new.metadata,
-            botName: (payload.new.metadata?.botName as string) || 'AI Bot'
+            id: (payload.new as Record<string, unknown>).id as string,
+            type: (payload.new as Record<string, unknown>).type as "message" | "bot_response" | "user_join" | "user_leave" | "bot_created" | "knowledge_updated",
+            description: (payload.new as Record<string, unknown>).description as string,
+            timestamp: (payload.new as Record<string, unknown>).created_at as string,
+            metadata: (payload.new as Record<string, unknown>).metadata as Record<string, unknown>,
+            botName: (((payload.new as Record<string, unknown>).metadata as Record<string, unknown>)?.botName as string) || 'AI Bot'
           }
 
           setState(prev => ({

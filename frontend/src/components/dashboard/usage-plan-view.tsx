@@ -1,6 +1,8 @@
 'use client'
 
-import { Lock, MessageSquare, Bot as BotIcon, TrendingUp, CreditCard, Calendar } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Lock, MessageSquare, Bot as BotIcon, TrendingUp, CreditCard, Calendar, RefreshCw } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface UsagePlanViewProps {
   platform: 'telegram' | 'whatsapp'
@@ -10,19 +12,30 @@ interface UsagePlanViewProps {
     token_limit: number
     tokens_used: number
     start_date: string
-    end_date: string
+    end_date?: string
     is_active: boolean
   }
   botUsage?: Array<{
     bot_name: string
     tokens_used: number
   }>
+  onSubscriptionUpdate?: () => void
 }
 
-export function UsagePlanView({ platform, subscription, botUsage = [] }: UsagePlanViewProps) {
+export function UsagePlanView({ platform, subscription, botUsage = [], onSubscriptionUpdate }: UsagePlanViewProps) {
+  const [availablePlans, setAvailablePlans] = useState<Array<Record<string, unknown>>>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const supabase = createClient()
+
   const tokensUsed = subscription?.tokens_used || 0
-  const tokenLimit = subscription?.token_limit || 1000
+  const tokenLimit = subscription?.token_limit || 100000
   const usagePercentage = (tokensUsed / tokenLimit) * 100
+
+  // Calculate days remaining
+  const daysRemaining = subscription?.end_date
+    ? Math.max(0, Math.ceil((new Date(subscription.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+    : 0
 
   const nextBillingDate = subscription?.end_date
     ? new Date(subscription.end_date).toLocaleDateString('en-US', {
@@ -31,6 +44,23 @@ export function UsagePlanView({ platform, subscription, botUsage = [] }: UsagePl
         day: 'numeric'
       })
     : 'N/A'
+
+  useEffect(() => {
+    async function fetchPlans() {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('price', { ascending: true })
+
+      if (data) {
+        // Filter out Free Plan from upgrade options
+        setAvailablePlans(data.filter(plan => plan.name !== 'Free Plan'))
+      }
+      setLoading(false)
+    }
+    fetchPlans()
+  }, [])
 
   const platformConfig = {
     telegram: {
@@ -51,6 +81,82 @@ export function UsagePlanView({ platform, subscription, botUsage = [] }: UsagePl
 
   const config = platformConfig[platform]
   const PlatformIcon = config.icon
+
+  const handleRefresh = async () => {
+    if (!onSubscriptionUpdate) return
+
+    setRefreshing(true)
+    try {
+      await onSubscriptionUpdate()
+    } finally {
+      // Add a small delay for better UX
+      setTimeout(() => setRefreshing(false), 500)
+    }
+  }
+
+  const handleUpgrade = async (newPlan: Record<string, unknown>) => {
+    if (!confirm(`Upgrade to ${newPlan.name} for $${newPlan.price}/month?`)) return
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('Please log in to upgrade')
+        return
+      }
+
+      // Get company_id from current subscription or user
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!company) {
+        alert('Company not found')
+        return
+      }
+
+      // Deactivate current subscription
+      const { error: deactivateError } = await supabase
+        .from('subscriptions')
+        .update({ is_active: false })
+        .eq('company_id', company.id)
+        .eq('is_active', true)
+
+      if (deactivateError) throw deactivateError
+
+      // Create new subscription
+      const startDate = new Date()
+      const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days
+
+      const { error: createError } = await supabase
+        .from('subscriptions')
+        .insert({
+          company_id: company.id,
+          plan_id: newPlan.id,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          is_active: true
+        })
+
+      if (createError) throw createError
+
+      alert(`✅ Successfully upgraded to ${newPlan.name}!`)
+
+      // Small delay to ensure database write completes before refetching
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Use refetch instead of reload for better UX
+      if (onSubscriptionUpdate) {
+        onSubscriptionUpdate()  // Refetch subscription data
+      } else {
+        window.location.reload()  // Fallback
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Failed to upgrade: ${message}`)
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-8 space-y-8">
@@ -85,7 +191,12 @@ export function UsagePlanView({ platform, subscription, botUsage = [] }: UsagePl
               ${subscription?.price?.toFixed(2) || '0.00'}/month
             </p>
           </div>
-          <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button
+            onClick={() => {
+              document.getElementById('available-plans')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             Upgrade Plan
           </button>
         </div>
@@ -94,9 +205,19 @@ export function UsagePlanView({ platform, subscription, botUsage = [] }: UsagePl
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Token Usage</span>
-            <span className="text-sm text-gray-600">
-              {tokensUsed.toLocaleString()} / {tokenLimit.toLocaleString()} tokens
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">
+                {tokensUsed.toLocaleString()} / {tokenLimit.toLocaleString()} tokens
+              </span>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                title="Refresh usage data"
+              >
+                <RefreshCw className={`w-4 h-4 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
             <div
@@ -149,112 +270,67 @@ export function UsagePlanView({ platform, subscription, botUsage = [] }: UsagePl
               <div className="text-xs text-gray-500">Next Billing</div>
               <div className="text-sm font-medium text-gray-900">
                 {nextBillingDate}
+                {daysRemaining > 0 && (
+                  <span className="text-xs text-gray-500 ml-1">
+                    ({daysRemaining} day{daysRemaining !== 1 ? 's' : ''})
+                  </span>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Usage by Bot */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Usage by Bot</h3>
+      {/* Available Plans */}
+      <div id="available-plans" className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Available Plans</h3>
 
-        {botUsage.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <BotIcon className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-            <p>No usage data available yet</p>
-          </div>
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading plans...</div>
         ) : (
-          <div className="space-y-4">
-            {botUsage.map((bot, index) => {
-              const botPercentage = (bot.tokens_used / tokensUsed) * 100
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {availablePlans.map((plan, index) => {
+              const isCurrentPlan = subscription?.plan_name === plan.name
+              const isPopular = plan.name === 'Professional Plan'
 
               return (
-                <div key={index} className="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-gray-900">{bot.bot_name}</span>
-                    <span className="text-sm text-gray-600">
-                      {bot.tokens_used.toLocaleString()} tokens ({botPercentage.toFixed(1)}%)
-                    </span>
+                <div
+                  key={String(plan.id)}
+                  className={`border-2 rounded-lg p-6 relative ${
+                    isPopular ? 'border-blue-500' : 'border-gray-200'
+                  }`}
+                >
+                  {isPopular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+                      Popular
+                    </div>
+                  )}
+                  <h4 className="text-xl font-bold text-gray-900 mb-2">{String(plan.name)}</h4>
+                  <div className="text-3xl font-bold text-gray-900 mb-4">
+                    ${String(plan.price)}<span className="text-lg text-gray-600">/mo</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 transition-all"
-                      style={{ width: `${botPercentage}%` }}
-                    />
-                  </div>
+                  <ul className="space-y-2 text-sm text-gray-600 mb-6">
+                    <li>✓ {(plan.token_limit as number).toLocaleString()} tokens/month</li>
+                    <li>✓ {(plan.features as Record<string, unknown>).bots === 999999 ? 'Unlimited' : String((plan.features as Record<string, unknown>).bots)} bot{(plan.features as Record<string, unknown>).bots as number > 1 ? 's' : ''}</li>
+                    <li>✓ {String((plan.features as Record<string, unknown>).support)} support</li>
+                    <li>✓ {String((plan.features as Record<string, unknown>).knowledge_items)} knowledge items</li>
+                  </ul>
+                  <button
+                    onClick={() => !isCurrentPlan && handleUpgrade(plan)}
+                    disabled={isCurrentPlan}
+                    className={`w-full px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isPopular
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                    }`}
+                  >
+                    {isCurrentPlan ? 'Current Plan' : 'Upgrade'}
+                  </button>
                 </div>
               )
             })}
           </div>
         )}
-      </div>
-
-      {/* Available Plans */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Available Plans</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Free Plan */}
-          <div className="border-2 border-gray-200 rounded-lg p-6">
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Free Plan</h4>
-            <div className="text-3xl font-bold text-gray-900 mb-4">
-              $0<span className="text-lg text-gray-600">/mo</span>
-            </div>
-            <ul className="space-y-2 text-sm text-gray-600 mb-6">
-              <li>✓ 1,000 tokens/month</li>
-              <li>✓ 1 bot</li>
-              <li>✓ Basic support</li>
-            </ul>
-            <button
-              disabled={subscription?.plan_name === 'Free Plan'}
-              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg disabled:opacity-50"
-            >
-              {subscription?.plan_name === 'Free Plan' ? 'Current Plan' : 'Downgrade'}
-            </button>
-          </div>
-
-          {/* Pro Plan */}
-          <div className="border-2 border-blue-500 rounded-lg p-6 relative">
-            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">
-              Popular
-            </div>
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Pro Plan</h4>
-            <div className="text-3xl font-bold text-gray-900 mb-4">
-              $29.99<span className="text-lg text-gray-600">/mo</span>
-            </div>
-            <ul className="space-y-2 text-sm text-gray-600 mb-6">
-              <li>✓ 10,000 tokens/month</li>
-              <li>✓ 5 bots</li>
-              <li>✓ Priority support</li>
-            </ul>
-            <button
-              disabled={subscription?.plan_name === 'Pro Plan'}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {subscription?.plan_name === 'Pro Plan' ? 'Current Plan' : 'Upgrade'}
-            </button>
-          </div>
-
-          {/* Enterprise Plan */}
-          <div className="border-2 border-gray-200 rounded-lg p-6">
-            <h4 className="text-xl font-bold text-gray-900 mb-2">Enterprise</h4>
-            <div className="text-3xl font-bold text-gray-900 mb-4">
-              $99.99<span className="text-lg text-gray-600">/mo</span>
-            </div>
-            <ul className="space-y-2 text-sm text-gray-600 mb-6">
-              <li>✓ 50,000 tokens/month</li>
-              <li>✓ 20 bots</li>
-              <li>✓ Dedicated support</li>
-            </ul>
-            <button
-              disabled={subscription?.plan_name === 'Enterprise Plan'}
-              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
-            >
-              {subscription?.plan_name === 'Enterprise Plan' ? 'Current Plan' : 'Upgrade'}
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   )

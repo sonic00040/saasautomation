@@ -309,7 +309,7 @@ export const CSP_DIRECTIVES = {
 
 // Audit logging
 export class SecurityAudit {
-  static log(event: string, details: any, userId?: string) {
+  static log(event: string, details: Record<string, unknown>, userId?: string) {
     const timestamp = new Date().toISOString()
     const logEntry = {
       timestamp,

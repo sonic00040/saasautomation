@@ -6,7 +6,7 @@ interface Plan {
   name: string
   price: number
   token_limit: number
-  features: any
+  features: Record<string, unknown>
   is_active: boolean
 }
 
@@ -28,6 +28,7 @@ interface UsageData {
   start_date: string
   end_date?: string
   is_active: boolean
+  plan?: Plan
 }
 
 export function useSubscription(companyId?: string) {
@@ -35,6 +36,7 @@ export function useSubscription(companyId?: string) {
   const [usageData, setUsageData] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const supabase = createClient()
 
@@ -42,14 +44,15 @@ export function useSubscription(companyId?: string) {
     if (companyId) {
       fetchSubscription()
     }
-  }, [companyId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, refreshTrigger])
 
   const fetchSubscription = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Fetch active subscription with plan details
+      // Fetch active subscription with plan details (get latest first)
       const { data: subData, error: subError } = await supabase
         .from('subscriptions')
         .select(`
@@ -58,6 +61,8 @@ export function useSubscription(companyId?: string) {
         `)
         .eq('company_id', companyId)
         .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single()
 
       if (subError && subError.code !== 'PGRST116') throw subError
@@ -66,15 +71,23 @@ export function useSubscription(companyId?: string) {
 
       // Fetch usage data
       if (subData) {
-        const { data: usageLogs, error: usageError } = await supabase
-          .from('usage_logs')
-          .select('tokens_used')
-          .eq('subscription_id', subData.id)
+        // Try to fetch usage logs, but don't fail if table schema is incorrect
+        let totalTokens = 0
+        try {
+          const { data: usageLogs, error: usageError } = await supabase
+            .from('usage_logs')
+            .select('total_tokens')  // Fixed: Use 'total_tokens' column name from database
+            .eq('subscription_id', subData.id)
 
-        if (usageError) throw usageError
+          if (!usageError && usageLogs) {
+            totalTokens = usageLogs.reduce((sum, log) => sum + (log.total_tokens || 0), 0)
+          }
+        } catch (usageError) {
+          // Silently handle usage tracking errors - subscription data is more important
+          console.warn('Failed to fetch usage logs:', usageError)
+        }
 
-        const totalTokens = usageLogs?.reduce((sum, log) => sum + log.tokens_used, 0) || 0
-
+        // Always set usageData even if usage tracking fails
         setUsageData({
           tokens_used: totalTokens,
           token_limit: subData.plan.token_limit,
@@ -82,7 +95,8 @@ export function useSubscription(companyId?: string) {
           price: subData.plan.price,
           start_date: subData.start_date,
           end_date: subData.end_date,
-          is_active: subData.is_active
+          is_active: subData.is_active,
+          plan: subData.plan
         })
       }
     } catch (err) {
@@ -93,7 +107,7 @@ export function useSubscription(companyId?: string) {
   }
 
   const refetch = () => {
-    fetchSubscription()
+    setRefreshTrigger(prev => prev + 1)  // Trigger useEffect to run again with fresh data
   }
 
   return {

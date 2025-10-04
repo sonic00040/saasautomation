@@ -17,6 +17,7 @@ interface Bot {
 interface MyBotsViewProps {
   platform: 'telegram' | 'whatsapp'
   bots: Bot[]
+  maxBots?: number
   onAddBot: () => void
   onEditBot: (bot: Bot) => void
   onDeleteBot: (botId: string) => void
@@ -26,6 +27,7 @@ interface MyBotsViewProps {
 export function MyBotsView({
   platform,
   bots,
+  maxBots = 1,
   onAddBot,
   onEditBot,
   onDeleteBot,
@@ -62,7 +64,7 @@ export function MyBotsView({
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bots</h1>
           <p className="text-gray-600">
-            Manage your {config.name} chatbots
+            Manage your {config.name} chatbots ({bots.length}/{maxBots === 999999 ? '∞' : maxBots})
           </p>
         </div>
         <button
@@ -172,7 +174,7 @@ export function MyBotsView({
             No bots found
           </h3>
           <p className="text-gray-600">
-            No bots match your search query "{searchQuery}"
+            No bots match your search query &quot;{searchQuery}&quot;
           </p>
         </div>
       )}

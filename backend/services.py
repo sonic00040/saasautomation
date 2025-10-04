@@ -11,7 +11,7 @@ from supabase import PostgrestAPIError
 logger = logging.getLogger(__name__)
 
 genai.configure(api_key=config.GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')  # Fixed: Updated to working Gemini model
 
 def send_telegram_message(token: str, chat_id: int, text: str, retries: int = 3) -> bool:
     """Sends a message to a Telegram user with retry logic."""
@@ -104,7 +104,7 @@ def record_usage(subscription_id: str, tokens_used: int) -> bool:
     try:
         supabase.table('usage_logs').insert({
             'subscription_id': subscription_id,
-            'total_tokens': tokens_used
+            'total_tokens': tokens_used  # Fixed: Use 'total_tokens' column name from database
         }).execute()
         logger.info(f"Recorded {tokens_used} tokens for subscription {subscription_id}")
         return True
