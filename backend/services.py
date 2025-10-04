@@ -1,7 +1,7 @@
 import google.generativeai as genai
 import requests
-from .database import supabase
-from . import config
+from backend.database import supabase
+from backend import config
 from datetime import datetime
 import logging
 import time
