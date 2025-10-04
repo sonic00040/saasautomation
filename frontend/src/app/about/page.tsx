@@ -15,11 +15,8 @@ import {
   CheckCircle,
   Zap,
   Brain,
-  Clock,
-  TrendingUp,
   Coffee,
   MessageSquare,
-  Code,
   Rocket
 } from "lucide-react"
 
@@ -141,7 +138,7 @@ export default function AboutPage() {
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Customer Service</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            We're on a mission to transform how businesses connect with their customers through intelligent AI automation that feels genuinely human.
+            We&apos;re on a mission to transform how businesses connect with their customers through intelligent AI automation that feels genuinely human.
           </p>
         </div>
       </section>
@@ -156,7 +153,7 @@ export default function AboutPage() {
                 We believe every business deserves access to world-class customer service capabilities, regardless of size or budget. Our AI-powered platform levels the playing field, enabling small startups to provide the same quality of support as Fortune 500 companies.
               </p>
               <p className="text-lg text-gray-600 mb-8">
-                By combining cutting-edge artificial intelligence with intuitive design, we're making it possible for any business to deliver exceptional customer experiences at scale.
+                By combining cutting-edge artificial intelligence with intuitive design, we&apos;re making it possible for any business to deliver exceptional customer experiences at scale.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600">
@@ -199,7 +196,7 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Impact by the Numbers</h2>
-            <p className="text-xl opacity-90">See how we're transforming customer service globally</p>
+            <p className="text-xl opacity-90">See how we&apos;re transforming customer service globally</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
             {stats.map((stat, index) => (
@@ -324,7 +321,7 @@ export default function AboutPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-6">Ready to Join Our Mission?</h2>
           <p className="text-xl mb-8 opacity-90">
-            Whether you're looking to transform your customer service or join our team, we'd love to hear from you.
+            Whether you&apos;re looking to transform your customer service or join our team, we&apos;d love to hear from you.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="outline" className="bg-white text-blue-600 hover:bg-gray-100">

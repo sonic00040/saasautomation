@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LeftNav } from '@/components/dashboard/left-nav'
 import { MyBotsView } from '@/components/dashboard/my-bots-view'
@@ -26,45 +26,84 @@ interface Bot {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
-  const [activeView, setActiveView] = useState<View>('my-bots')
-  const [user, setUser] = useState<any>(null)
+  // Initialize activeView from URL query parameter, defaulting to 'my-bots'
+  const initialView = (searchParams.get('view') as View) || 'my-bots'
+  const [activeView, setActiveView] = useState<View>(initialView)
+  const [user, setUser] = useState<{ id: string; email?: string; [key: string]: unknown } | null>(null)
   const [showBotModal, setShowBotModal] = useState(false)
   const [showKnowledgeEditor, setShowKnowledgeEditor] = useState(false)
-  const [editingBot, setEditingBot] = useState<any>(null)
+  const [editingBot, setEditingBot] = useState<Bot | null>(null)
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null)
   const [knowledgeContent, setKnowledgeContent] = useState('')
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
 
-  const { company, loading: companyLoading, error: companyError } = useCompany()
+  const { company, loading: companyLoading, error: companyError, refetch: refetchCompany } = useCompany()
   const { bots, createBot, updateBot, deleteBot, refetch: refetchBots } = useBots(company?.id)
   const { usageData, refetch: refetchSubscription } = useSubscription(company?.id)
+
+  // Handle view changes and update URL
+  const handleViewChange = (view: View) => {
+    setActiveView(view)
+    // Update URL without full page reload
+    router.push(`/dashboard?view=${view}`, { scroll: false })
+  }
 
   // Check auth and redirect if needed
   useEffect(() => {
     checkUser()
+
+    // Timeout fallback to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (companyLoading) {
+        console.warn('[Dashboard] Loading timeout reached after 10 seconds')
+        setLoadingTimeout(true)
+      }
+    }, 10000)
+
+    return () => clearTimeout(timeout)
   }, [])
 
+  // Separate effect to handle onboarding redirect when company data loads
+  useEffect(() => {
+    console.log('[Dashboard] Company state changed:', {
+      companyLoading,
+      hasCompany: !!company,
+      hasUser: !!user,
+      companyError: companyError?.message
+    })
+
+    // Only redirect to onboarding if:
+    // 1. Company loading is complete
+    // 2. User is authenticated
+    // 3. No company exists
+    // 4. No company error (errors are handled separately)
+    if (!companyLoading && user && !company && !companyError) {
+      console.log('[Dashboard] Redirecting to onboarding - no company found')
+      router.push('/onboarding')
+    }
+  }, [companyLoading, company, user, companyError, router])
+
   const checkUser = async () => {
+    console.log('[Dashboard] Checking user authentication...')
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
+      console.log('[Dashboard] No user found, redirecting to signin')
       router.push('/auth/signin')
       return
     }
 
-    setUser(user)
-
-    // Check if user has completed onboarding (has a company)
-    if (!companyLoading && !company) {
-      router.push('/onboarding')
-    }
+    console.log('[Dashboard] User authenticated:', user.id)
+    setUser(user as unknown as { id: string; email?: string; [key: string]: unknown })
   }
 
   // Handle bot creation/update
   const handleSaveBot = async (botData: Partial<Bot>) => {
     try {
-      if (editingBot) {
+      if (editingBot && editingBot.id) {
         await updateBot(editingBot.id, botData)
       } else {
         await createBot(botData)
@@ -72,7 +111,7 @@ export default function DashboardPage() {
       setShowBotModal(false)
       setEditingBot(null)
       refetchBots()
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error
     }
   }
@@ -85,8 +124,9 @@ export default function DashboardPage() {
     try {
       await deleteBot(botId)
       refetchBots()
-    } catch (error: any) {
-      alert('Failed to delete bot: ' + error.message)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      alert('Failed to delete bot: ' + message)
     }
   }
 
@@ -142,39 +182,74 @@ export default function DashboardPage() {
 
         if (error) throw error
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw error
     }
   }
 
   // Handle edit bot
-  const handleEditBot = (bot: any) => {
+  const handleEditBot = (bot: Bot) => {
     setEditingBot(bot)
     setShowBotModal(true)
   }
 
   // Handle add new bot
   const handleAddBot = () => {
+    // Check bot limit before opening modal
+    if (!usageData) {
+      alert('Please wait, loading subscription data...')
+      return
+    }
+
+    const currentBotCount = bots.length
+    const maxBots = (typeof usageData.plan?.features?.bots === 'number' ? usageData.plan.features.bots : 1)
+
+    if (currentBotCount >= maxBots) {
+      const upgradeMsg = `You&apos;ve reached your plan limit of ${maxBots} bot${maxBots > 1 ? 's' : ''}.\n\nPlease upgrade your plan to add more bots.`
+      alert(upgradeMsg)
+      handleViewChange('usage') // Redirect to upgrade page
+      return
+    }
+
     setEditingBot(null)
     setShowBotModal(true)
   }
 
+  // Show loading state
   if (companyLoading || !user || !company) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading dashboard...</p>
+          {loadingTimeout && (
+            <div className="mt-4">
+              <p className="text-yellow-600 text-sm">This is taking longer than expected...</p>
+              <button
+                onClick={() => router.push('/onboarding')}
+                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                Go to Onboarding
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )
   }
 
+  // Show error state
   if (companyError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <p className="text-red-600">Error loading dashboard: {companyError.message}</p>
+          <p className="text-red-600 mb-4">Error loading dashboard: {companyError.message}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
         </div>
       </div>
     )
@@ -183,7 +258,7 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Left Navigation */}
-      <LeftNav activeView={activeView} onViewChange={setActiveView} />
+      <LeftNav activeView={activeView} onViewChange={handleViewChange} />
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
@@ -191,6 +266,7 @@ export default function DashboardPage() {
           <MyBotsView
             platform={company.platform}
             bots={bots}
+            maxBots={typeof usageData?.plan?.features?.bots === 'number' ? usageData.plan.features.bots : 1}
             onAddBot={handleAddBot}
             onEditBot={handleEditBot}
             onDeleteBot={handleDeleteBot}
@@ -201,7 +277,8 @@ export default function DashboardPage() {
         {activeView === 'usage' && (
           <UsagePlanView
             platform={company.platform}
-            subscription={usageData}
+            subscription={usageData || undefined}
+            onSubscriptionUpdate={refetchSubscription}
           />
         )}
 
@@ -210,6 +287,7 @@ export default function DashboardPage() {
             user={user}
             company={company}
             nextBillingDate={usageData?.end_date}
+            onCompanyUpdate={refetchCompany}
           />
         )}
       </main>
@@ -217,7 +295,7 @@ export default function DashboardPage() {
       {/* Modals */}
       {showBotModal && (
         <BotSetupModal
-          bot={editingBot}
+          bot={editingBot || undefined}
           platform={company.platform}
           onClose={() => {
             setShowBotModal(false)

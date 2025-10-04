@@ -23,6 +23,7 @@ export function BotSetupModal({ bot, platform, onClose, onSave }: BotSetupModalP
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showWebhook, setShowWebhook] = useState(false)
+  const [webhookData, setWebhookData] = useState<Record<string, unknown> | null>(null)
 
   const [formData, setFormData] = useState({
     name: bot?.name || '',
@@ -57,9 +58,32 @@ export function BotSetupModal({ bot, platform, onClose, onSave }: BotSetupModalP
       }
 
       await onSave(botData)
+
+      // Set up webhook
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+        const webhookResponse = await fetch(`${backendUrl}/api/webhooks/setup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            platform,
+            bot_token: platform === 'telegram' ? formData.token : null,
+            business_phone: platform === 'whatsapp' ? formData.whatsappPhone : null
+          })
+        })
+
+        const data = await webhookResponse.json()
+        setWebhookData(data)
+      } catch (webhookError) {
+        console.error('Webhook setup error:', webhookError)
+        setWebhookData({ status: 'error', message: 'Failed to set up webhook' })
+      }
+
       setShowWebhook(true)
-    } catch (err: any) {
-      setError(err.message || 'Failed to save bot')
+      setLoading(false)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save bot'
+      setError(message)
       setLoading(false)
     }
   }
@@ -234,12 +258,24 @@ export function BotSetupModal({ bot, platform, onClose, onSave }: BotSetupModalP
           ) : (
             <div className="space-y-6">
               {/* Success Message */}
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h3 className="text-green-900 font-medium mb-1">
-                  Bot {isEditing ? 'Updated' : 'Created'} Successfully!
+              <div className={`p-4 border rounded-lg ${
+                webhookData?.status === 'success'
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-blue-50 border-blue-200'
+              }`}>
+                <h3 className={`font-medium mb-1 ${
+                  webhookData?.status === 'success' ? 'text-green-900' : 'text-blue-900'
+                }`}>
+                  {webhookData?.status === 'success' ? '✅ Bot Activated!' : `Bot ${isEditing ? 'Updated' : 'Created'}`}
                 </h3>
-                <p className="text-sm text-green-700">
-                  Now set up your webhook to start receiving messages.
+                <p className={`text-sm ${
+                  webhookData?.status === 'success' ? 'text-green-700' : 'text-blue-700'
+                }`}>
+                  {webhookData?.status === 'success'
+                    ? 'Your bot is now live and ready to receive messages!'
+                    : webhookData?.status === 'manual'
+                    ? 'In development mode, you need to set up the webhook manually.'
+                    : 'Now set up your webhook to start receiving messages.'}
                 </p>
               </div>
 

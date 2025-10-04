@@ -1,8 +1,5 @@
-'use client'
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { useEffect, useState } from "react"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -44,15 +41,4 @@ export function formatChartDate(date: Date | string | number): string {
 // Format numbers with consistent locale to avoid hydration issues
 export function formatNumber(num: number): string {
   return num.toLocaleString('en-US')
-}
-
-// Hook to ensure client-side rendering for dynamic content
-export function useClientSide() {
-  const [isClient, setIsClient] = useState(false)
-
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  return isClient
 }

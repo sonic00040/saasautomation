@@ -314,7 +314,7 @@ export function QuickActionsBar() {
                 {filteredActions.length === 0 && (
                   <div className="p-8 text-center">
                     <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No actions found matching "{searchQuery}"</p>
+                    <p className="text-gray-500">No actions found matching &quot;{searchQuery}&quot;</p>
                     <p className="text-sm text-gray-400 mt-1">Try a different search term</p>
                   </div>
                 )}

@@ -242,10 +242,10 @@ export async function getUserMetrics(user: User): Promise<DashboardMetrics> {
     const totalMessages = botsData.reduce((sum, bot) => sum + bot.messageCount, 0)
 
     const subscription = subscriptionData
-    const monthlyLimit = subscription?.plan?.token_limit || 1000
+    const monthlyLimit = (subscription?.plan as any)?.token_limit || 1000
     const tokensUsed = usageData.currentUsage
-    const planName = subscription?.plan?.name || 'Free Plan'
-    const planPrice = subscription?.plan?.price || 0
+    const planName = (subscription?.plan as any)?.name || 'Free Plan'
+    const planPrice = (subscription?.plan as any)?.price || 0
 
     const successRate = totalMessages > 0 ? Math.round((totalMessages * 0.97)) : 0
 
@@ -313,7 +313,7 @@ export async function getUserBots(companyId: string): Promise<BotConfig[]> {
       platform: bot.platform as 'telegram' | 'whatsapp' | 'discord',
       isActive: bot.is_active,
       lastActivity: bot.last_activity,
-      messageCount: bot.conversations?.reduce((sum: number, conv: any) => sum + (conv.message_count || 0), 0) || 0,
+      messageCount: bot.conversations?.reduce((sum: number, conv: { message_count?: number }) => sum + (conv.message_count || 0), 0) || 0,
       webhookUrl: bot.webhook_url,
       createdAt: bot.created_at
     }))

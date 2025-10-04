@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 
 interface AccountSettingsViewProps {
   user: {
-    email: string
+    email?: string
   }
   company: {
     id: string
@@ -16,9 +16,10 @@ interface AccountSettingsViewProps {
     platform: 'telegram' | 'whatsapp'
   }
   nextBillingDate?: string
+  onCompanyUpdate?: () => void
 }
 
-export function AccountSettingsView({ user, company, nextBillingDate }: AccountSettingsViewProps) {
+export function AccountSettingsView({ user, company, nextBillingDate, onCompanyUpdate }: AccountSettingsViewProps) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -48,8 +49,12 @@ export function AccountSettingsView({ user, company, nextBillingDate }: AccountS
 
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to update settings')
+
+      // Trigger refetch to update company data throughout the app
+      onCompanyUpdate?.()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update settings'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -60,6 +65,10 @@ export function AccountSettingsView({ user, company, nextBillingDate }: AccountS
       setLoading(true)
       setError(null)
 
+      if (!user.email) {
+        throw new Error('Email address not available')
+      }
+
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, {
         redirectTo: `${window.location.origin}/auth/reset-password`
       })
@@ -67,8 +76,9 @@ export function AccountSettingsView({ user, company, nextBillingDate }: AccountS
       if (resetError) throw resetError
 
       alert('Password reset email sent! Check your inbox.')
-    } catch (err: any) {
-      setError(err.message || 'Failed to send password reset email')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send password reset email'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -103,8 +113,9 @@ export function AccountSettingsView({ user, company, nextBillingDate }: AccountS
       // Sign out
       await supabase.auth.signOut()
       router.push('/')
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete account')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete account'
+      setError(message)
       setLoading(false)
     }
   }
@@ -164,7 +175,7 @@ export function AccountSettingsView({ user, company, nextBillingDate }: AccountS
               <div className="flex-1">
                 <input
                   type="email"
-                  value={user.email}
+                  value={user.email || ''}
                   disabled
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 cursor-not-allowed"
                 />

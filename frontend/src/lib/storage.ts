@@ -250,7 +250,7 @@ export async function updateFileProcessingStatus(
   chunks?: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const updateData: any = { processed }
+    const updateData: { processed: boolean; chunks?: number } = { processed }
     if (chunks !== undefined) {
       updateData.chunks = chunks
     }

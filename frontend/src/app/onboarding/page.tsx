@@ -82,6 +82,43 @@ export default function OnboardingPage() {
 
       if (botError) throw botError
 
+      // Set up webhook and activate bot
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+        console.log('[Onboarding] Setting up webhook...')
+
+        const webhookResponse = await fetch(`${backendUrl}/api/webhooks/setup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            platform: data.platform,
+            bot_token: data.platform === 'telegram' ? data.botToken : null,
+            business_phone: data.platform === 'whatsapp' ? data.whatsappPhone : null
+          })
+        })
+
+        const webhookData = await webhookResponse.json()
+        console.log('[Onboarding] Webhook response:', webhookData)
+
+        if (webhookData.status === 'success') {
+          // Update bot to active and store webhook URL
+          await supabase
+            .from('bots')
+            .update({
+              is_active: true,
+              webhook_url: webhookData.webhook_url
+            })
+            .eq('id', bot.id)
+
+          console.log('[Onboarding] ✅ Bot activated successfully!')
+        } else {
+          console.log('[Onboarding] ⚠️ Webhook setup:', webhookData.status, '- Bot will remain inactive')
+        }
+      } catch (webhookError) {
+        console.error('[Onboarding] Webhook setup failed:', webhookError)
+        // Don't fail onboarding, just log the error
+      }
+
       // Create knowledge base
       if (data.knowledgeBase.trim()) {
         const { error: kbError } = await supabase
@@ -95,27 +132,48 @@ export default function OnboardingPage() {
         if (kbError) throw kbError
       }
 
-      // Create default subscription (Free Plan)
-      const { data: plans } = await supabase
+      // Create default subscription (Free Plan - 30 days, one-time only)
+      console.log('[Onboarding] Creating Free Plan subscription...')
+
+      const { data: freePlan, error: planError } = await supabase
         .from('plans')
         .select('id')
         .eq('name', 'Free Plan')
         .single()
 
-      if (plans) {
-        await supabase
-          .from('subscriptions')
-          .insert({
-            company_id: company.id,
-            plan_id: plans.id,
-            is_active: true
-          })
+      if (planError) {
+        console.error('[Onboarding] Free Plan not found:', planError)
+        throw new Error('Free Plan not found in database. Please contact support.')
       }
+
+      console.log('[Onboarding] Free Plan found:', freePlan.id)
+
+      // Calculate 30-day expiry for Free Plan
+      const startDate = new Date()
+      const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+
+      const { error: subError } = await supabase
+        .from('subscriptions')
+        .insert({
+          company_id: company.id,
+          plan_id: freePlan.id,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(), // Free Plan expires in 30 days
+          is_active: true
+        })
+
+      if (subError) {
+        console.error('[Onboarding] Subscription creation failed:', subError)
+        throw new Error(`Failed to create subscription: ${subError.message}`)
+      }
+
+      console.log('[Onboarding] Free Plan subscription created! Expires:', endDate.toISOString())
 
       // Redirect to dashboard
       router.push('/dashboard')
-    } catch (err: any) {
-      setError(err.message || 'Failed to complete onboarding')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to complete onboarding'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -192,7 +250,7 @@ export default function OnboardingPage() {
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">WhatsApp</h3>
                     <p className="text-sm text-gray-600 mt-2">
-                      Reach 2B+ users on the world's most popular messaging app
+                      Reach 2B+ users on the world&apos;s most popular messaging app
                     </p>
                   </div>
                   <div className="text-sm text-gray-500">

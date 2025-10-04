@@ -103,7 +103,7 @@ export function MFAEnrollmentModal({ open, onOpenChange, onSuccess }: MFAEnrollm
 
             <div className="space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">What you'll need:</h4>
+                <h4 className="font-medium text-blue-900 mb-2">What you&apos;ll need:</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li className="flex items-center space-x-2">
                     <Smartphone className="h-4 w-4" />
@@ -122,7 +122,7 @@ export function MFAEnrollmentModal({ open, onOpenChange, onSuccess }: MFAEnrollm
                   <div>
                     <h4 className="font-medium text-amber-900 mb-1">Important</h4>
                     <p className="text-sm text-amber-800">
-                      Once enabled, you'll need your authenticator app to sign in. Make sure to save your backup codes.
+                      Once enabled, you&apos;ll need your authenticator app to sign in. Make sure to save your backup codes.
                     </p>
                   </div>
                 </div>
@@ -179,7 +179,7 @@ export function MFAEnrollmentModal({ open, onOpenChange, onSuccess }: MFAEnrollm
 
                 <div className="text-center">
                   <p className="text-sm text-gray-600 mb-2">
-                    Can't scan? Enter this code manually:
+                    Can&apos;t scan? Enter this code manually:
                   </p>
                   <div className="flex items-center space-x-2">
                     <code className="px-2 py-1 bg-gray-100 rounded text-sm font-mono">
@@ -265,7 +265,7 @@ export function MFAEnrollmentModal({ open, onOpenChange, onSuccess }: MFAEnrollm
             <div className="text-center space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-sm text-green-800">
-                  Next time you sign in, you'll be asked for a code from your authenticator app.
+                  Next time you sign in, you&apos;ll be asked for a code from your authenticator app.
                 </p>
               </div>
 

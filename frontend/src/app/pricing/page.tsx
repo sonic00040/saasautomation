@@ -6,80 +6,57 @@ import { CheckCircle, Bot, ArrowLeft } from "lucide-react"
 
 const plans = [
   {
-    name: "Starter",
-    price: "$29",
+    name: "Startup Plan",
+    price: "$49",
     period: "/month",
-    description: "Perfect for small businesses getting started with AI support",
+    description: "Great for growing businesses",
     features: [
-      "1,000 messages/month",
-      "1 chatbot",
-      "Basic knowledge base",
-      "Email support",
-      "Standard response time",
-      "Web integration",
-    ],
-    limitations: [
-      "No phone support",
-      "Limited customization",
-      "Basic analytics",
+      "1,000,000 tokens/month",
+      "3 bots",
+      "Priority support",
+      "30-day renewable",
     ],
     popular: false,
   },
   {
-    name: "Professional",
+    name: "Professional Plan",
     price: "$99",
     period: "/month",
-    description: "Advanced features for growing businesses",
+    description: "For professional teams",
     features: [
-      "10,000 messages/month",
-      "5 chatbots",
-      "Advanced knowledge base",
-      "Priority email support",
-      "Custom branding",
-      "Web & mobile integration",
-      "Advanced analytics",
-      "API access",
-    ],
-    limitations: [
-      "No phone support",
-      "Limited team members",
+      "30,000,000 tokens/month",
+      "10 bots",
+      "Premium support",
+      "30-day renewable",
     ],
     popular: true,
   },
   {
-    name: "Enterprise",
+    name: "Enterprise Plan",
     price: "$299",
     period: "/month",
-    description: "Full-featured solution for large organizations",
+    description: "For large organizations",
     features: [
-      "50,000 messages/month",
-      "Unlimited chatbots",
-      "Enterprise knowledge base",
-      "24/7 phone & email support",
-      "Full white-label solution",
-      "All platform integrations",
-      "Advanced analytics & reporting",
-      "Full API access",
-      "Custom integrations",
-      "Dedicated account manager",
-      "SLA guarantee",
+      "2,000,000 tokens/month",
+      "25 bots",
+      "Dedicated support",
+      "30-day renewable",
     ],
-    limitations: [],
     popular: false,
   },
-]
-
-const allFeatures = [
-  { name: "Monthly Messages", starter: "1,000", professional: "10,000", enterprise: "50,000" },
-  { name: "Chatbots", starter: "1", professional: "5", enterprise: "Unlimited" },
-  { name: "Knowledge Base", starter: "Basic", professional: "Advanced", enterprise: "Enterprise" },
-  { name: "Support", starter: "Email", professional: "Priority Email", enterprise: "24/7 Phone & Email" },
-  { name: "Custom Branding", starter: "❌", professional: "✅", enterprise: "✅" },
-  { name: "API Access", starter: "❌", professional: "Basic", enterprise: "Full" },
-  { name: "Analytics", starter: "Basic", professional: "Advanced", enterprise: "Enterprise" },
-  { name: "Integrations", starter: "Web only", professional: "Web & Mobile", enterprise: "All Platforms" },
-  { name: "White-label", starter: "❌", professional: "❌", enterprise: "✅" },
-  { name: "SLA", starter: "❌", professional: "❌", enterprise: "99.9%" },
+  {
+    name: "Ultimate Plan",
+    price: "$599",
+    period: "/month",
+    description: "Unlimited everything",
+    features: [
+      "Unlimited tokens",
+      "Unlimited bots",
+      "VIP support",
+      "Custom features",
+    ],
+    popular: false,
+  },
 ]
 
 export default function PricingPage() {
@@ -126,7 +103,7 @@ export default function PricingPage() {
               Simple, Transparent Pricing
             </h1>
             <p className="text-xl text-gray-600 mb-8">
-              Choose the perfect plan for your business. Start with our 14-day free trial, 
+              Choose the perfect plan for your business. Start with our 14-day free trial,
               no credit card required.
             </p>
             <div className="flex justify-center">
@@ -137,7 +114,7 @@ export default function PricingPage() {
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid md:grid-cols-3 gap-8 mb-20">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
             {plans.map((plan, index) => (
               <Card 
                 key={plan.name} 
@@ -183,46 +160,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Feature Comparison Table */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Compare Plans
-            </h2>
-            <p className="text-xl text-gray-600">
-              Detailed feature comparison across all plans
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse bg-white rounded-lg shadow-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-4 font-semibold text-gray-900">Features</th>
-                  <th className="text-center p-4 font-semibold text-gray-900">Starter</th>
-                  <th className="text-center p-4 font-semibold text-gray-900">
-                    Professional
-                    <Badge className="ml-2 bg-blue-600">Popular</Badge>
-                  </th>
-                  <th className="text-center p-4 font-semibold text-gray-900">Enterprise</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allFeatures.map((feature, index) => (
-                  <tr key={feature.name} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                    <td className="p-4 font-medium text-gray-900">{feature.name}</td>
-                    <td className="p-4 text-center text-gray-700">{feature.starter}</td>
-                    <td className="p-4 text-center text-gray-700">{feature.professional}</td>
-                    <td className="p-4 text-center text-gray-700">{feature.enterprise}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
       {/* FAQ Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -238,8 +175,8 @@ export default function PricingPage() {
                 Can I change plans anytime?
               </h3>
               <p className="text-gray-600">
-                Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, 
-                and we'll prorate the billing accordingly.
+                Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately,
+                and we&apos;ll prorate the billing accordingly.
               </p>
             </div>
             
@@ -248,8 +185,8 @@ export default function PricingPage() {
                 What happens if I exceed my message limit?
               </h3>
               <p className="text-gray-600">
-                We'll notify you when you reach 80% and 95% of your limit. If you exceed your limit, 
-                your chatbots will continue to work, but you'll be charged for additional messages at standard rates.
+                We&apos;ll notify you when you reach 80% and 95% of your limit. If you exceed your limit,
+                your chatbots will continue to work, but you&apos;ll be charged for additional messages at standard rates.
               </p>
             </div>
             

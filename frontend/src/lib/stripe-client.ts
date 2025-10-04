@@ -268,7 +268,7 @@ export function calculateUsagePercentage(used: number, limit: number): number {
 /**
  * Check if user has exceeded limits
  */
-export function checkLimits(usage: any, plan: PlanDetails): { 
+export function checkLimits(usage: { messages: number; bots: number; storage: number }, plan: PlanDetails): { 
   messages: { exceeded: boolean; percentage: number }
   bots: { exceeded: boolean; percentage: number }
   storage: { exceeded: boolean; percentage: number }
